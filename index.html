@@ -1,0 +1,3378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>知识库工作台</title>
+<link id="app-favicon" rel="icon" href="icon.png">
+<!-- 本工作台：本地单文件 + localStorage（数据存自己电脑），分享内容复制 Markdown 粘贴到飞书 -->
+<style>
+:root{
+  --bg:#f3f5fa;
+  --surface:#ffffff;
+  --surface-2:#fafbfe;
+  --line:#e8ebf2;
+  --line-strong:#dbe0ea;
+  --text:#1b2330;
+  --text-2:#57627a;
+  --muted:#8b94a6;
+  --primary:#2f6bff;
+  --primary-dark:#1f56e0;
+  --primary-soft:#eef3ff;
+  --primary-ring:rgba(47,107,255,.16);
+  --logo-grad:linear-gradient(135deg,#3b6cf6,#2f6bff 55%,#1f56e0);
+  --logo-shadow:0 6px 16px rgba(47,107,255,.36);
+  --btn-shadow:0 4px 12px rgba(47,107,255,.28);
+  --danger:#e5484d;
+  --danger-bg:#fdecec;
+  --danger-soft:#fff1f1;
+  --warn:#e08a00;
+  --warn-soft:#fff4e2;
+  --green:#15a34a;
+  --green-soft:#e8f6ee;
+  --radius:14px;
+  --radius-lg:20px;
+  --radius-sm:10px;
+  --shadow-sm:0 1px 2px rgba(20,30,50,.05),0 1px 3px rgba(20,30,50,.06);
+  --shadow-md:0 6px 18px rgba(20,30,50,.08);
+  --shadow-lg:0 20px 46px rgba(20,30,50,.16);
+}
+/* 粉色主题 */
+[data-theme="pink"]{
+  --primary:#ec4899;
+  --primary-dark:#d6277f;
+  --primary-soft:#fdeef6;
+  --primary-ring:rgba(236,72,153,.16);
+  --logo-grad:linear-gradient(135deg,#f57bc0,#ec4899 55%,#d6277f);
+  --logo-shadow:0 6px 16px rgba(236,72,153,.36);
+  --btn-shadow:0 4px 12px rgba(236,72,153,.28);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.65;padding-bottom:calc(78px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased}
+::selection{background:var(--primary-soft)}
+button{font-family:inherit}
+.app{max-width:1100px;margin:0 auto;padding:0 20px 32px}
+
+/* ---------- 顶栏 ---------- */
+.topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:10px 22px;margin:0 -20px 22px;flex-wrap:wrap;
+  background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);
+  border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand .logo{width:42px;height:42px;border-radius:0;flex-shrink:0;display:block;
+  box-shadow:0 6px 16px rgba(255,110,110,.36)}
+.brand h1{font-size:19px;font-weight:700;letter-spacing:-.2px;display:flex;align-items:center;gap:8px;line-height:1.2}
+.brand .tag{display:block;color:var(--muted);font-size:12.5px;font-weight:500;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 15px;border:1px solid var(--line);
+  background:#fff;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;color:var(--text);
+  min-height:42px;transition:.18s;white-space:nowrap;box-shadow:var(--shadow-sm)}
+.btn:hover{border-color:var(--line-strong);box-shadow:var(--shadow-md)}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:var(--btn-shadow)}
+.btn-primary:hover{background:var(--primary-dark);border-color:var(--primary-dark);color:#fff}
+.btn-ghost{background:#fff}
+.btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
+.form-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+
+/* 菜单内主题切换 */
+.menu-theme{display:flex;align-items:center;gap:10px;padding:11px 15px}
+.menu-theme-label{font-size:13px;font-weight:600;color:var(--muted)}
+.theme-dots{display:flex;gap:8px}
+.theme-dot{width:24px;height:24px;border-radius:50%;border:2px solid #fff;cursor:pointer;padding:0;box-shadow:0 0 0 1px var(--line);transition:.15s}
+.theme-dot:hover{transform:scale(1.1)}
+.theme-dot.active{box-shadow:0 0 0 2px var(--text);border-color:#fff}
+
+/* 数据保存位置弹窗 */
+.storage-info{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:4px 14px;margin:6px 0 14px}
+.si-row{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.si-row:last-child{border-bottom:none}
+.si-k{flex:0 0 70px;color:var(--muted);font-size:13px;font-weight:600}
+.si-v{flex:1;font-size:13.5px;color:var(--text);word-break:break-word;line-height:1.5}
+.si-v code{background:var(--primary-soft);color:var(--primary);padding:1px 6px;border-radius:5px;font-size:12.5px;font-family:ui-monospace,Consolas,monospace}
+.si-tip{font-size:13px;color:var(--text-2);background:var(--warn-soft);border:1px solid #f3dcb4;border-radius:var(--radius-sm);padding:11px 13px;line-height:1.6;margin-bottom:4px}
+.hook-input{width:100%;min-height:44px;font-size:14px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:var(--radius-sm);color:var(--text);background:var(--surface)}
+.hook-input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+.feishu-status{font-size:12.5px;color:var(--muted);min-height:18px;margin:6px 2px 2px}
+.bconfig-grid{display:grid;grid-template-columns:1fr;gap:10px;margin:10px 0 2px}
+.bcfg{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--text-2)}
+.bcfg .hook-input{min-height:40px;font-size:13.5px}
+.btn-icon{width:42px;height:42px;padding:0;font-size:20px;color:var(--text-2)}
+.btn-icon:hover{color:var(--primary);border-color:var(--primary);background:var(--primary-soft)}
+.btn-sm{padding:8px 12px;min-height:40px;font-size:13px}
+.hint-note{font-size:12.5px;color:#4a5a8c;margin:0 -20px 18px;padding:11px 20px;background:var(--primary-soft);
+  border-bottom:1px solid var(--primary-soft);display:flex;align-items:center;gap:8px}
+.hint-note b{color:var(--primary-dark)}
+
+/* 更多菜单 */
+.menu-wrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 8px);min-width:184px;background:#fff;border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:var(--shadow-lg);padding:6px;z-index:40;display:none;animation:pop .14s ease}
+.menu.open{display:block}
+@keyframes pop{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.menu-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 12px;border:none;background:none;
+  border-radius:9px;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;transition:.12s}
+.menu-item:hover{background:var(--surface-2)}
+.menu-item.danger{color:var(--danger)}
+.menu-item.danger:hover{background:var(--danger-soft)}
+.menu-sep{height:1px;background:var(--line);margin:5px 4px}
+
+/* ---------- 卡片 ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:22px;margin-bottom:18px;box-shadow:var(--shadow-sm)}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.card-head h2{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card-head h2 svg{color:var(--primary)}
+.card h3{font-size:15.5px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-weight:700}
+.card h3 svg{color:var(--primary)}
+.hint{font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.7}
+.badge{background:var(--primary-soft);color:var(--primary);font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;white-space:nowrap}
+
+/* ---------- 布局 + 侧边栏 ---------- */
+.layout{display:flex;gap:22px;align-items:flex-start}
+.nav{width:206px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;position:sticky;top:84px}
+.nav-label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.6px;padding:6px 14px 2px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1px solid transparent;border-radius:13px;
+  background:transparent;cursor:pointer;font-size:14.5px;font-weight:600;color:var(--text-2);min-height:50px;transition:.16s;width:100%;text-align:left}
+.nav-item svg{color:var(--muted);transition:.16s;flex-shrink:0}
+.nav-item:hover{background:#fff;border-color:var(--line);color:var(--text);box-shadow:var(--shadow-sm)}
+.nav-item:hover svg{color:var(--primary)}
+.nav-item.active{background:var(--primary-soft);color:var(--primary-dark);border-color:var(--primary);box-shadow:var(--btn-shadow)}
+.nav-item.active svg{color:var(--primary)}
+.nav-count{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--primary);background:#fff;border:1px solid #d6e2ff;
+  min-width:22px;height:22px;padding:0 7px;border-radius:11px;display:inline-flex;align-items:center;justify-content:center}
+.nav-count.zero{display:none}
+.nav-foot{margin-top:10px;padding:14px;border:1px dashed var(--line-strong);border-radius:13px;background:var(--surface-2);
+  font-size:11.5px;color:var(--muted);line-height:1.6}
+.nav-foot b{color:var(--text-2)}
+.nav-announce{cursor:pointer;display:flex;align-items:center;gap:11px;text-align:left;width:100%;font-family:inherit;background:transparent;border:none;padding:0;color:inherit;transition:.15s}
+.nav-announce:focus{outline:none}
+.nav-announce-block:hover{border-color:var(--primary);background:var(--primary-soft)}
+.nav-announce-block:hover b{color:var(--primary-dark)}
+.nav-announce-body{margin-top:10px;max-height:40vh;overflow:auto}
+.nav-announce-body .announce-item{padding:11px 12px}
+.nav-announce-body .announce-item-head{display:block;margin-bottom:6px}
+.nav-announce-body .announce-item-meta{margin-top:3px;display:block}
+.nav-announce-body .announce-item-body{font-size:13px;line-height:1.65}
+.nav-announce-more{margin-top:10px;width:100%}
+.announce-ic{font-size:20px;line-height:1;flex-shrink:0}
+.announce-txt{min-width:0}
+.announce-item{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--surface-2)}
+.announce-item:last-child{margin-bottom:0}
+.announce-item-head{display:block;margin-bottom:8px}
+.announce-item-head b{display:block;text-align:center;font-size:16px;color:#dc2626}
+.announce-item-meta{font-size:12px;color:var(--muted);display:block;text-align:center;margin-top:3px}
+.announce-item-body{white-space:pre-wrap;font-size:14px;line-height:1.7;color:var(--text)}
+.content{flex:1;min-width:0}
+.view{display:none}
+.view.active{display:block;animation:fade .22s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- 待处理 ---------- */
+.add-task-row{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px}
+.add-task-row input{flex:1;min-width:160px;padding:12px 15px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  font-size:16px;font-family:inherit;transition:.15s;background:#fff;color:var(--text)}
+.add-task-row input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-ring)}
+.todo-list{display:flex;flex-direction:column;gap:9px}
+.todo-item{display:flex;align-items:center;gap:12px;padding:13px 15px;border:1px solid var(--line);border-radius:13px;background:#fff;transition:.15s}
+.todo-item:hover{box-shadow:var(--shadow-sm);border-color:var(--line-strong)}
+.todo-item.done{opacity:.6;background:var(--surface-2)}
+.todo-item.done .t-title{text-decoration:line-through;color:var(--muted)}
+.t-body{flex:1;min-width:0}
+.t-title{font-size:14.5px;font-weight:600;word-break:break-word}
+.t-empty{padding:40px 20px;border:1.5px dashed var(--line-strong);border-radius:var(--radius);text-align:center;color:var(--muted)}
+.t-empty .em{font-size:30px;display:block;margin-bottom:8px}
+.icon-btn{width:42px;height:42px;border:1px solid var(--line);background:#fff;border-radius:11px;cursor:pointer;color:var(--muted);
+  flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;transition:.15s}
+.icon-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.icon-btn.danger:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-bg)}
+.icon-btn.done-btn{color:var(--green);border-color:#bfe3cc}
+.icon-btn.done-btn:hover{background:var(--green);color:#fff;border-color:var(--green)}
+.done-divider{font-size:12px;color:var(--muted);margin:18px 0 10px;font-weight:700;letter-spacing:.4px;display:flex;align-items:center;gap:10px}
+.done-divider::before,.done-divider::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ---------- 知识笔记 ---------- */
+.note-layout{display:flex;gap:18px;align-items:flex-start}
+.note-list-panel{width:280px;flex-shrink:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+  overflow:hidden;box-shadow:var(--shadow-sm);align-self:stretch;display:flex;flex-direction:column}
+.note-list-head{padding:14px;display:flex;gap:9px;align-items:center;border-bottom:1px solid var(--line)}
+.search-box{position:relative;flex:1;display:flex;align-items:center}
+.search-box .search-ic{position:absolute;left:12px;color:var(--muted);display:flex;pointer-events:none}
+.search-box input{flex:1;width:100%;padding:10px 12px 10px 36px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  font-size:15px;font-family:inherit;background:#fafbfe;transition:.15s}
+.search-box input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-ring);background:#fff}
+.icon-add{width:42px;height:42px;flex-shrink:0;border:1px solid var(--line);background:#fff;border-radius:11px;cursor:pointer;
+  font-size:22px;color:var(--primary);display:inline-flex;align-items:center;justify-content:center;transition:.15s;line-height:1}
+.icon-add:hover{background:var(--primary);color:#fff;border-color:var(--primary)}
+.note-list{list-style:none;flex:1;max-height:66vh;overflow-y:auto;min-height:120px}
+.note-item{padding:12px 14px;border-bottom:1px solid var(--surface-2);cursor:pointer;display:flex;align-items:center;gap:9px;transition:.12s}
+.note-item:hover{background:var(--primary-soft)}
+.note-item.active{background:var(--primary-soft);box-shadow:inset 3px 0 0 var(--primary)}
+.note-item .file-type{font-size:11px;color:var(--primary);background:#fff;border:1px solid var(--primary-soft);padding:2px 8px;border-radius:7px;white-space:nowrap;flex-shrink:0;font-weight:700}
+.note-item .file-type.ft-lit{color:var(--primary);background:var(--primary-soft);border-color:var(--primary-soft)}
+.note-item .file-type.ft-exp{color:var(--green);background:var(--green-soft);border-color:#bfe3cc}
+.note-item .file-type.ft-pit{color:var(--warn);background:var(--warn-soft);border-color:#f3dcb4}
+.note-item .file-title{flex:1;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);min-width:0}
+.note-item .file-del{font-size:17px;color:var(--muted);background:none;border:none;cursor:pointer;padding:2px 4px;flex-shrink:0;line-height:1;border-radius:6px;opacity:0;transition:.12s}
+.note-item:hover .file-del{opacity:1}
+.note-item .file-del:hover{color:var(--danger);background:var(--danger-bg)}
+.note-main{flex:1;min-width:0}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.tab{flex:1;min-width:92px;padding:12px 8px;border:1px solid var(--line);border-radius:13px;background:var(--surface);cursor:pointer;
+  text-align:center;font-size:13.5px;font-weight:600;transition:.18s;color:var(--text-2);box-shadow:var(--shadow-sm)}
+.tab:hover{border-color:var(--primary);color:var(--primary)}
+.tab.active{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:var(--btn-shadow)}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:var(--text-2)}
+.field .req{color:var(--danger)}
+.field input,.field textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  font-size:16px;font-family:inherit;background:#fff;transition:.15s;color:var(--text)}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-ring)}
+.field textarea{min-height:88px;resize:vertical;line-height:1.6}
+.field textarea.short{min-height:56px}
+/* 图文（文字+图片）字段 */
+.field textarea.rich-text{min-height:96px;resize:vertical;line-height:1.7}
+.rich-actions{display:flex;gap:8px;align-items:center;margin-top:9px;flex-wrap:wrap}
+.rich-count{font-size:12px;color:var(--muted);margin-left:auto}
+.rich-imgs{display:flex;gap:10px;flex-wrap:wrap;margin:11px 0}
+.rich-img{position:relative;width:96px;height:96px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--surface-2);flex-shrink:0}
+.rich-img img{width:100%;height:100%;object-fit:cover;display:block}
+.rich-img .ri-del{position:absolute;top:4px;right:4px;width:24px;height:24px;border:none;background:rgba(17,24,39,.62);color:#fff;font-size:15px;line-height:1;border-radius:50%;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:.15s}
+.rich-img .ri-del:hover{background:var(--danger)}
+.field-label{cursor:pointer;display:flex;align-items:center;gap:6px;transition:.12s}
+.field-label:hover{color:var(--primary)}
+.field-label:hover .lbl-edit-ic{opacity:1;color:var(--primary)}
+.lbl-edit-ic{opacity:0;color:var(--muted);display:inline-flex;transition:.12s}
+.field-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:9px;padding:11px 13px;background:var(--surface-2);border:1px dashed var(--line);border-radius:var(--radius-sm)}
+.field-edit .fe-name{flex:1;min-width:120px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
+.field-edit .fe-type{padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
+.field-edit .btn{flex:0 0 auto}
+.form-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;flex-wrap:wrap}
+.form-head h3{margin:0;display:flex;align-items:center;gap:8px;font-size:16px}
+.form-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+@media (max-width:768px){ .form-head{flex-direction:column;align-items:stretch} .form-head-actions .btn{flex:1;justify-content:center} }
+
+/* 预览 */
+.preview-doc{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;
+  font-size:14.5px;line-height:1.75;color:var(--text);max-height:60vh;overflow:auto}
+.preview-doc.preview-src{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;font-size:13px;background:#0f172a;color:#e2e8f0;border-color:rgba(255,255,255,.06)}
+.md-h{font-weight:700;line-height:1.35;margin:0 0 10px;color:var(--text)}
+.md-h1{font-size:21px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+.md-h2{font-size:17px;margin-top:18px;color:var(--primary-dark)}
+.md-h3{font-size:15px;margin-top:14px}
+.md-ul{margin:0 0 12px;padding-left:22px}
+.md-ul li{margin:5px 0}
+.preview-doc p{margin:0 0 11px}
+.preview-doc blockquote{margin:0 0 12px;padding:8px 14px;border-left:3px solid var(--primary);background:var(--primary-soft);border-radius:0 9px 9px 0;color:var(--text-2)}
+.preview-doc code{background:#eef0f5;color:#c0341d;padding:2px 6px;border-radius:6px;font-size:.9em;font-family:ui-monospace,Consolas,monospace}
+.preview-doc a{color:var(--primary);text-decoration:none;font-weight:600}
+.preview-doc a:hover{text-decoration:underline}
+.preview-doc hr{border:none;border-top:1px solid var(--line);margin:14px 0}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px}
+.seg-btn{border:none;background:none;padding:6px 13px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:.14s}
+.seg-btn.active{background:#fff;color:var(--primary);box-shadow:var(--shadow-sm)}
+.btns{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+
+/* ---------- 项目进度 ---------- */
+.project-layout{display:flex;gap:18px;align-items:flex-start}
+.project-list-panel{width:280px;flex-shrink:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+  overflow:hidden;box-shadow:var(--shadow-sm);align-self:stretch;display:flex;flex-direction:column}
+.project-main{flex:1;min-width:0}
+.p-empty{padding:40px 20px;border:1.5px dashed var(--line-strong);border-radius:var(--radius);text-align:center;color:var(--muted)}
+.p-empty .em{font-size:30px;display:block;margin-bottom:8px}
+.p-section{margin-bottom:22px}
+.p-section-title{font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:11px;display:flex;align-items:center;gap:8px}
+.p-section-title .cnt{font-size:11px;color:var(--muted);font-weight:600}
+.p-tpl-label{cursor:pointer;transition:color .12s;user-select:none}
+.p-tpl-label:hover{color:var(--primary)}
+.p-tpl-label .lbl-edit-ic{opacity:0;color:var(--muted);display:inline-flex;transition:.12s}
+.p-tpl-label:hover .lbl-edit-ic{opacity:1;color:var(--primary)}
+.p-add-type{padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:13px;background:#fff;color:var(--text)}
+.p-field{margin-bottom:15px}
+.p-field label{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:var(--text-2)}
+.p-field input,.p-field textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  font-size:15px;font-family:inherit;background:#fff;transition:.15s;color:var(--text)}
+.p-field input:focus,.p-field textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-ring)}
+.p-field textarea{min-height:88px;resize:vertical;line-height:1.7}
+/* 文献条目 */
+.ref-item{border:1px solid var(--line);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:10px;background:#fff;transition:.15s}
+.ref-item:hover{border-color:var(--line-strong)}
+.ref-item-head{display:flex;gap:8px;margin-bottom:8px}
+.ref-item-head input{flex:1;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;transition:.15s}
+.ref-item-head input.ref-year{flex:0 0 78px}
+.ref-item-head input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+.ref-item textarea{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;min-height:64px;line-height:1.6;background:#fff;transition:.15s}
+.ref-item textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+/* 图文条目（进展/讨论）：文字与图片上下对应 */
+.p-entry{border:1px solid var(--line);border-radius:var(--radius-sm);padding:13px 14px;margin-bottom:10px;background:#fff;transition:.15s}
+.p-entry:hover{border-color:var(--line-strong)}
+.p-entry-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.p-entry-type{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:7px;white-space:nowrap;flex-shrink:0}
+.p-entry-type.prog{background:var(--primary-soft);color:var(--primary)}
+.p-entry-type.plan{background:var(--warn-soft);color:var(--warn)}
+.p-entry-head .spacer{flex:1}
+.p-entry textarea{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;resize:vertical;min-height:72px;line-height:1.7;background:#fff;transition:.15s}
+.p-entry textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-ring)}
+.p-entry-imgs{display:flex;gap:10px;flex-wrap:wrap;margin-top:11px}
+.p-entry-imgs.top{margin-top:0;margin-bottom:11px}
+.p-add-row{display:flex;gap:8px;margin-top:2px;flex-wrap:wrap}
+/* 项目进度自定义字段 */
+.p-cfield{margin-bottom:15px}
+.p-cfield .cf-label{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:var(--text-2);cursor:pointer;user-select:none}
+.p-cfield .cf-label:hover{color:var(--primary)}
+.p-cfield .cf-edit-ic{font-size:12px;color:var(--muted);opacity:.6}
+.p-cfield input,.p-cfield textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:15px;font-family:inherit;background:#fff;transition:.15s;color:var(--text)}
+.p-cfield input:focus,.p-cfield textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-ring)}
+.p-cfield textarea{min-height:88px;resize:vertical;line-height:1.7}
+/* 相关 PDF 附件 */
+.p-pdf-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.p-pdf-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}
+.p-pdf-name{flex:1;min-width:0;font-size:13px;color:var(--text);display:inline-flex;align-items:center;gap:6px;word-break:break-all}
+.p-pdf-name svg{color:var(--primary);flex-shrink:0}
+.p-pdf-item .btn{flex-shrink:0;min-height:34px;padding:6px 12px;font-size:12.5px}
+.p-del-btn{font-size:15px;color:var(--muted);background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:7px;line-height:1;flex-shrink:0;transition:.12s}
+.p-del-btn:hover{color:var(--danger);background:var(--danger-bg)}
+.p-type-toggle{font-size:11.5px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--text-2);border-radius:7px;padding:3px 9px;cursor:pointer;transition:.12s;white-space:nowrap}
+.p-type-toggle:hover{border-color:var(--primary);color:var(--primary)}
+.p-form-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.p-form-head h3{margin:0;font-size:16px;display:flex;align-items:center;gap:8px}
+
+/* ---------- 知识卡片 ---------- */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.kcard{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--line);border-radius:var(--radius-lg);
+  padding:20px;display:flex;flex-direction:column;gap:10px;transition:.2s;box-shadow:var(--shadow-sm)}
+.kcard:hover{border-color:var(--line-strong);box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.kcard.type-exp{border-top-color:var(--green)}
+.kcard.type-pit{border-top-color:var(--warn)}
+.kcard-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kcard-badge{font-size:11.5px;font-weight:700;padding:4px 11px;border-radius:9px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.kcard-badge.exp{background:var(--green-soft);color:var(--green)}
+.kcard-badge.pit{background:var(--warn-soft);color:var(--warn)}
+.kcard-title{font-size:16px;font-weight:700;word-break:break-word;line-height:1.4;color:var(--text)}
+.kcard-click{cursor:pointer;transition:.15s}
+.kcard-click:hover{color:var(--primary)}
+.kcard-meta{font-size:12px;color:var(--muted);white-space:nowrap}
+.kcard-summary{font-size:13.5px;color:var(--text-2);word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.65}
+.kcard-actions{display:flex;gap:9px;margin-top:auto;padding-top:10px}
+.kcard-actions .btn{flex:1;padding:10px;min-height:44px;font-size:13px}
+.cards-empty{grid-column:1/-1;padding:54px 24px;border:1.5px dashed var(--line-strong);border-radius:var(--radius-lg);background:#fff;
+  text-align:center;color:var(--muted)}
+.cards-empty .em{font-size:34px;display:block;margin-bottom:10px}
+.cards-empty a{color:var(--primary);font-weight:600;cursor:pointer;text-decoration:none}
+.shared-section{margin-top:36px;padding-top:26px;border-top:1px solid var(--line-strong)}
+.shared-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.shared-search{flex:1;max-width:340px}
+.shared-title{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--text)}
+.shared-title svg{color:var(--primary)}
+.shared-section .hint{margin-bottom:16px}
+
+/* ---------- 资料共享（PDF） ---------- */
+.res-file-pick{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.res-file-name{font-size:13.5px;color:var(--muted);word-break:break-all;min-width:0}
+.res-file-name.has{color:var(--text);font-weight:600}
+.res-fields{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px}
+.res-item{display:flex;align-items:flex-start;gap:14px;padding:15px 16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-bottom:10px;transition:.15s}
+.res-item:hover{border-color:var(--line-strong);box-shadow:var(--shadow-sm)}
+.res-ic{flex-shrink:0;color:var(--primary);background:var(--primary-soft);border-radius:10px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.res-main{flex:1;min-width:0}
+.res-title{font-weight:700;font-size:14.5px;word-break:break-word;line-height:1.45;color:var(--text)}
+.res-desc{font-size:13px;color:var(--text-2);margin-top:3px;word-break:break-word;line-height:1.6}
+.res-meta{font-size:12px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.res-tag{font-size:11.5px;font-weight:600;color:var(--primary);background:var(--primary-soft);padding:1px 8px;border-radius:7px;white-space:nowrap}
+.res-actions{flex-shrink:0;display:flex;gap:8px;align-items:center}
+/* 卡片区展开/收起 */
+.expand-row{display:flex;justify-content:center;margin-top:16px}
+/* 卡片类型切换 tab */
+.card-type-tabs{display:flex;gap:8px;margin-bottom:16px}
+.ctt-btn{padding:8px 20px;border:1px solid var(--line);border-radius:20px;background:var(--surface);cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text-2);transition:.15s}
+.ctt-btn:hover{border-color:var(--primary);color:var(--primary)}
+.ctt-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+/* 卡片分组 */
+.card-group{margin-bottom:20px}
+.card-group-head{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.card-group-title{font-size:14px;font-weight:700;color:var(--text);display:inline-flex;align-items:center;gap:7px}
+.card-group-title .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.card-group-title .dot.exp{background:var(--green)}
+.card-group-title .dot.pit{background:var(--warn)}
+.card-group-count{font-size:12px;color:var(--muted);font-weight:600}
+.card-group-head .btn{margin-left:auto}
+
+/* ---------- 模态框 ---------- */
+.modal-mask{position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  display:none;align-items:flex-start;justify-content:center;z-index:100;padding:56px 16px;overflow-y:auto}
+.modal-mask.open{display:flex}
+.modal{background:#fff;border-radius:22px;width:100%;max-width:680px;padding:26px;box-shadow:var(--shadow-lg);animation:pop .16s ease}
+.modal h2{font-size:20px;font-weight:700;margin-bottom:5px}
+.modal .sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.modal-sm{max-width:420px}
+.confirm-msg{font-size:14px;color:var(--text);line-height:1.7;white-space:pre-line;margin-bottom:22px;word-break:break-all}
+.modal-row{display:flex;gap:10px;align-items:center;margin-bottom:13px;flex-wrap:wrap}
+.modal-row input,.modal-row select{flex:1;min-width:120px;padding:11px 13px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:15px;font-family:inherit;background:#fff;transition:.15s}
+.modal-row input:focus,.modal-row select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-ring)}
+.field-item{display:flex;gap:8px;align-items:center;margin-bottom:9px}
+.field-item input{flex:1;min-width:110px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff;transition:.15s}
+.field-item input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-ring)}
+.field-item select{width:128px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
+.icon-btn-sm{width:34px;height:34px;border:1px solid var(--line);background:#fff;border-radius:9px;cursor:pointer;font-size:14px;color:var(--muted);flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;transition:.15s}
+.icon-btn-sm:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.icon-btn-sm.danger:hover{border-color:var(--danger);color:var(--danger);background:var(--danger-bg)}
+.section-label{font-size:12px;font-weight:700;color:var(--muted);margin:20px 0 11px;letter-spacing:.5px;text-transform:uppercase}
+
+.toast{position:fixed;top:22px;left:50%;transform:translateX(-50%) translateY(-10px);background:#111827;color:#fff;padding:12px 22px;
+  border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:200;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:8px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:860px){
+  .app{padding:0 14px 28px}
+  .topbar{margin:0 -14px 18px;padding:12px 14px}
+  .brand .tag{display:none}
+  .note-layout{flex-direction:column}
+  .note-list-panel{width:100%;align-self:auto}
+  .project-layout{flex-direction:column}
+  .project-list-panel{width:100%;align-self:auto}
+  .note-list{max-height:40vh}
+  .top-actions{width:100%}
+  .cards-grid{grid-template-columns:1fr}
+  .layout{flex-direction:column}
+  .nav{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;margin:0;z-index:50;
+    flex-direction:row;gap:4px;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);padding:7px 10px calc(7px + env(safe-area-inset-bottom));border-radius:0}
+  .nav-label,.nav-foot{display:none}
+  .nav-item{flex:1;min-height:50px;font-size:12.5px;justify-content:center;color:var(--muted);padding:8px 4px;border-radius:12px}
+  .nav-item .nav-count{position:absolute;top:4px;right:calc(50% - 26px);margin:0}
+  .nav-item{position:relative}
+  body{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <img class="logo" src="icon.png" alt="">
+    <div>
+      <h1>知识库工作台</h1>
+    </div>
+  </div>
+  <div class="top-actions">
+    <div class="menu-wrap">
+      <button class="btn btn-icon" id="btn-more" title="更多操作" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>
+      </button>
+      <div class="menu" id="more-menu" role="menu">
+        <div class="menu-theme">
+          <span class="menu-theme-label">主题色</span>
+          <div class="theme-dots">
+            <button class="theme-dot active" data-theme-set="blue" title="蓝色" style="background:#2f6bff"></button>
+            <button class="theme-dot" data-theme-set="pink" title="粉色" style="background:#ec4899"></button>
+          </div>
+        </div>
+        <div class="menu-sep"></div>
+        <button class="menu-item" id="m-storage" role="menuitem"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6l-8-4Z"/><path d="M12 8v4M12 16h.01"/></svg> 数据保存位置</button>
+        <button class="menu-item" id="m-setdir" role="menuitem"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/></svg> 设置保存文件夹</button>
+        <button class="menu-item" id="m-bitable" role="menuitem"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg> 组内共享库设置</button>
+        <button class="menu-item" id="m-export" role="menuitem"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg> 导出 JSON 备份</button>
+        <button class="menu-item" id="m-import" role="menuitem"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M4 20h16"/></svg> 导入恢复</button>
+        <div class="menu-sep"></div>
+        <button class="menu-item danger" id="m-clear" role="menuitem"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg> 清空全部数据</button>
+      </div>
+    </div>
+  </div>
+</header>
+<p class="hint-note" id="backup-hint" style="display:none"><b>提示</b> 数据已积累较多，建议点右上角「⋯」导出 JSON 备份一份到本地。</p>
+
+<div class="app">
+  <div class="layout">
+    <nav class="nav" id="nav">
+      <div class="nav-label">工作区</div>
+      <button class="nav-item active" data-view="todo"><span id="ic-todo"></span> 待处理 <span class="nav-count zero" id="nav-todo">0</span></button>
+      <button class="nav-item" data-view="note"><span id="ic-note"></span> 知识笔记</button>
+      <button class="nav-item" data-view="projects"><span id="ic-projects"></span> 项目进度</button>
+      <button class="nav-item" data-view="cards"><span id="ic-cards"></span> 共享卡片 <span class="nav-count zero" id="nav-cards">0</span></button>
+      <button class="nav-item" data-view="resources"><span id="ic-resources"></span> 资料共享</button>
+      <div class="nav-foot nav-announce-block" id="nav-announce-block">
+        <button class="nav-announce" id="btn-announce"><span class="announce-ic">📢</span><span class="announce-txt"><b>使用必看</b><br>使用前请先阅读</span></button>
+        <div id="nav-announce-body" class="nav-announce-body"></div>
+        <button class="btn btn-sm btn-ghost nav-announce-more" id="btn-announce-more">查看全部</button>
+      </div>
+    </nav>
+    <main class="content">
+
+  <!-- 待处理 -->
+  <section class="view active" id="view-todo">
+    <div class="card">
+      <div class="card-head">
+        <h2><span id="ic-todo2"></span> 待处理</h2>
+        <span class="badge" id="todo-count">0 项</span>
+      </div>
+      <div class="add-task-row">
+        <input id="task-title" placeholder="加一条待办，如：写《XX》文献笔记">
+        <button class="btn btn-primary" id="btn-add-task">添加</button>
+      </div>
+      <div class="todo-list" id="todo-list"></div>
+    </div>
+  </section>
+
+  <!-- 知识笔记 -->
+  <section class="view" id="view-note">
+    <div class="note-layout">
+      <div class="note-list-panel">
+        <div class="note-list-head">
+          <div class="search-box">
+            <span class="search-ic" id="ic-search"></span>
+            <input id="note-search" placeholder="搜索笔记…">
+          </div>
+          <button class="icon-add" id="btn-new-note" title="新建笔记">+</button>
+        </div>
+        <ul class="note-list" id="note-list"></ul>
+      </div>
+      <div class="note-main">
+        <div class="tabs" id="tpl-tabs"></div>
+        <div class="card">
+          <div id="form-area"></div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h3><span id="ic-preview"></span> 生成结果</h3>
+            <div class="seg" id="preview-seg">
+              <button class="seg-btn active" data-mode="rendered">预览</button>
+              <button class="seg-btn" data-mode="src">源码</button>
+            </div>
+          </div>
+          <div id="preview" class="preview-doc"></div>
+          <div class="btns">
+            <button class="btn btn-primary" id="btn-save">保存</button>
+            <button class="btn" id="btn-new">新建</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 项目进度 -->
+  <section class="view" id="view-projects">
+    <div class="project-layout">
+      <div class="project-list-panel">
+        <div class="note-list-head">
+          <button class="icon-add" id="btn-new-project" title="新建项目">+</button>
+        </div>
+        <ul class="note-list project-list" id="project-list"></ul>
+      </div>
+      <div class="project-main">
+        <div class="card">
+          <div id="project-form"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 知识卡片（含组内共享） -->
+  <section class="view" id="view-cards">
+    <div class="card-type-tabs" id="card-type-tabs">
+      <button class="ctt-btn active" data-card-type="all">全部</button>
+      <button class="ctt-btn" data-card-type="exp">经验</button>
+      <button class="ctt-btn" data-card-type="pit">踩坑</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3 style="margin:0"><span id="ic-cards2"></span> 我的知识卡片</h3>
+        <div class="search-box shared-search">
+          <span class="search-ic" id="ic-cards-search"></span>
+          <input id="cards-search" placeholder="搜索我的卡片…">
+        </div>
+      </div>
+    </div>
+    <div id="cards-grid"></div>
+
+    <div class="shared-section">
+      <div class="shared-section-head">
+        <span class="shared-title"><span id="ic-shared2"></span> 组内共享</span>
+        <div class="search-box shared-search">
+          <span class="search-ic" id="ic-shared-search"></span>
+          <input id="shared-search" placeholder="搜索组内共享卡片…">
+        </div>
+        <button class="btn btn-sm btn-primary" id="btn-shared-refresh">刷新</button>
+      </div>
+      <div id="shared-grid"></div>
+    </div>
+  </section>
+
+  <!-- 资料共享（PDF 上传/浏览） -->
+  <section class="view" id="view-resources">
+    <div class="card">
+      <div class="card-head">
+        <h3 style="margin:0"><span id="ic-resources2"></span> 上传共享文件</h3>
+      </div>
+      <div class="res-file-pick">
+        <button class="btn" id="btn-res-pick"><span id="ic-res-upload"></span> 选择文件</button>
+        <span class="res-file-name" id="res-file-name">未选择文件</span>
+        <input type="file" id="res-file-input" hidden>
+      </div>
+      <div class="res-fields">
+        <input id="res-title" class="hook-input" placeholder="标题（必填，如：Attention Is All You Need）">
+        <input id="res-tags" class="hook-input" placeholder="标签（可选，逗号分隔，如：图神经网络, 注意力机制）">
+        <input id="res-desc" class="hook-input" placeholder="一句话说明（可选，如：Transformer 开山之作）">
+      </div>
+      <div class="btns">
+        <button class="btn btn-primary" id="btn-res-upload">上传到组内共享</button>
+      </div>
+    </div>
+
+    <div class="shared-section">
+      <div class="shared-section-head">
+        <span class="shared-title"><span id="ic-res-shared"></span> 组内共享资料</span>
+        <div class="search-box shared-search">
+          <span class="search-ic" id="ic-res-search"></span>
+          <input id="res-search" placeholder="搜索共享资料…">
+        </div>
+        <button class="btn btn-sm btn-primary" id="btn-res-refresh">刷新</button>
+      </div>
+      <div class="res-grid" id="res-grid"></div>
+    </div>
+  </section>
+    </main>
+  </div>
+</div>
+
+<!-- 数据保存位置说明 -->
+<div class="modal-mask" id="storage-mask">
+  <div class="modal">
+    <h2>数据保存位置</h2>
+    <div class="sub">本工作台的全部内容都保存在你自己电脑的浏览器里，不会上传到任何服务器。</div>
+    <div class="storage-info">
+      <div class="si-row"><span class="si-k">保存方式</span><span class="si-v">浏览器本地存储（localStorage）</span></div>
+      <div class="si-row"><span class="si-k">保存位置</span><span class="si-v">你当前使用的浏览器（Chrome / Edge 等）的本地数据库，存于本机硬盘；换浏览器、清缓存或用别的电脑都不会同步。</span></div>
+      <div class="si-row"><span class="si-k">存储键值</span><span class="si-v"><code>kb_notes_v1</code> / <code>kb_templates_v1</code> / <code>wb_kb_tasks_v1</code> / <code>kb_projects_v1</code> / <code>kb_schema_v</code></span></div>
+      <div class="si-row"><span class="si-k">自定义保存文件夹</span><span class="si-v">在「⋯ → 设置保存文件夹」选一次你的 Obsidian 文件夹，之后点「保存」就直接把 <code>.md</code> 写进该文件夹（不经过下载目录）。当前：<b id="save-dir-current">未设置</b></span></div>
+      <div class="si-row"><span class="si-k">「保存」导出文件</span><span class="si-v">若未设置保存文件夹，「保存」会导出 <code>.md</code> 到浏览器「下载」目录作为兜底。要自动存到指定地方，请先「设置保存文件夹」。</span></div>
+    </div>
+    <p class="si-tip">⚠️ 若要换设备或在另一台电脑使用，请点「⋯ → 导出 JSON 备份」把数据存成文件带走，再到新环境「导入恢复」即可。</p>
+    <div class="btns"><button class="btn btn-primary" id="btn-storage-close">知道了</button></div>
+  </div>
+</div>
+
+<div class="modal-mask" id="bitable-mask">
+  <div class="modal">
+    <h2>组内共享库设置</h2>
+    <div class="sub">填你的名字，点保存即可。</div>
+    <div class="bconfig-grid">
+      <label class="bcfg"><span>App ID</span><input id="bt-appid" class="hook-input" placeholder="cli_xxx"></label>
+      <label class="bcfg"><span>app_token（表格 base 链接里的 base 后的串）</span><input id="bt-apptoken" class="hook-input" placeholder="bascnxxxx"></label>
+      <label class="bcfg"><span>table_id（链接里 table= 后的串）</span><input id="bt-tableid" class="hook-input" placeholder="tblxxxx"></label>
+      <label class="bcfg"><span>公告表 app_token（独立 base 时填，可选）</span><input id="bt-ann-apptoken" class="hook-input" placeholder="bascnxxxx"></label>
+      <label class="bcfg"><span>公告表 table_id（可选）</span><input id="bt-ann-tableid" class="hook-input" placeholder="tblxxxx"></label>
+      <label class="bcfg"><span>我的名字</span><input id="bt-author" class="hook-input" placeholder="张三"></label>
+      <label class="bcfg"><span>我的学号</span><input id="bt-sid" class="hook-input" placeholder="例如 2024XXXXXX"></label>
+    </div>
+    <div class="sub" style="margin:12px 0 0;padding:11px 13px;background:var(--warn-soft);border:1px solid #f3dcb4;border-radius:var(--radius-sm);line-height:1.7">🔒 权限说明：只有<b>名字 + 学号</b>都匹配飞书里的成员记录，才能<b>查看、上传、存入、删除</b>共享内容；群公告不受限。群主在飞书表格里添加一行「<b>类型=成员</b>」（标题=名字、学号=学号）即视为邀请。</div>
+    <div class="feishu-status" id="bitable-status"></div>
+    <div class="btns">
+      <button class="btn btn-ghost" id="btn-bitable-clear">清除</button>
+      <button class="btn" id="btn-bitable-close">取消</button>
+      <button class="btn btn-primary" id="btn-bitable-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 组内公告弹窗 -->
+<div class="modal-mask" id="announce-mask">
+  <div class="modal">
+    <h2>使用必看</h2>
+    <div id="announce-body" style="max-height:60vh;overflow:auto"></div>
+    <div class="btns">
+      <button class="btn" id="btn-announce-close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 卡片详情弹窗 -->
+<div class="modal-mask" id="card-detail-mask">
+  <div class="modal">
+    <div id="card-detail-body" style="max-height:62vh;overflow:auto"></div>
+    <div class="btns">
+      <button class="btn" id="btn-card-detail-close">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 通用确认弹窗（替代 window.confirm，避免原生对话框关闭后焦点异常导致输入框点不进去） -->
+<div class="modal-mask" id="confirm-mask">
+  <div class="modal modal-sm">
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="btns">
+      <button class="btn btn-ghost" id="btn-confirm-cancel">取消</button>
+      <button class="btn btn-primary" id="btn-confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var LS_TEMPLATES='kb_templates_v1';
+  var LS_NOTES='kb_notes_v1';
+  var LS_TASKS='wb_kb_tasks_v1';
+  var LS_SCHEMA='kb_schema_v';
+  var LS_BITABLE='kb_bitable_v1';
+  var LS_ANNOUNCE='kb_announce_cache_v1';
+  // 内置共享库配置（开源版不含任何真实凭证）：请到「⋯ → 组内共享库设置」填写你自己的
+  // 飞书应用 App ID、多维表格 app_token / table_id（公告表可选）；「恢复为内置配置」即回到此空值
+  // 注意：app_secret 只在后端 server.js（FEISHU_APP_ID / FEISHU_APP_SECRET，读 feishu.config.json），前端不保存密钥
+  var BITABLE_DEFAULT={
+    app_id:'',
+    app_token:'',
+    table_id:'',
+    ann_table_id:'',
+    ann_app_token:'',
+    author:'',
+    student_id:''
+  };
+  var LS_PROJECTS='kb_projects_v1';
+
+  var CARD_TPL_IDS={ exp:1, pit:1 };  // 经验和踩坑 → 生成知识卡片
+
+  // ---- 图标 ----
+  var ICONS={
+    note:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+    cards:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 3v6M17 3v6"/>',
+    check:'<path d="M5 12l5 5L19 6"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    trash:'<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+    search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    download:'<path d="M12 3v12M7 10l5 5 5-5M4 20h16"/>',
+    upload:'<path d="M12 15V3M7 8l5-5 5 5M4 20h16"/>',
+    copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 0 0 1 2-2h10"/>',
+    file:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/>',
+    gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>',
+    edit:'<path d="M4 20h4L20 8l-4-4L4 16z"/><path d="M13 5l4 4"/>',
+    close:'<path d="M6 6l12 12M18 6L6 18"/>',
+    share:'<path d="M12 3v12M8 7l4-4 4 4"/><path d="M4 12v8h16v-8"/>',
+    send:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/>',
+    shared:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9.5" r="2.5"/><path d="M16 15.6a5 5 0 0 1 5.5 4.4"/>',
+    todo:'<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+    projects:'<path d="M5 3v18"/><path d="M5 5h12l-2.5 3L17 11H5"/><path d="M5 15h9l-2 2.5 2 2.5H5"/>',
+    resources:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><path d="M12 11.5v5M9.5 14l2.5 2.5L14.5 14"/>',
+    pdf:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15.5h6M9 19h3"/>',
+    undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>'
+  };
+  function icon(name,size){
+    return '<svg viewBox="0 0 24 24" width="'+(size||18)+'" height="'+(size||18)+'" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+ICONS[name]+'</svg>';
+  }
+
+  // ---- 工具 ----
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function dateOnly(ts){ var d=new Date(ts); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function fmtDate(s){ if(!s) return ''; var p=s.split('-'); return Number(p[1])+'月'+Number(p[2])+'日'; }
+  function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  // 步骤序号转中文数字（1→一，2→二……10→十），超过 10 用阿拉伯数字兜底
+  function cnNum(n){ var s='零一二三四五六七八九十'; return (n>=1&&n<=10)?s[n]:String(n); }
+  function safeName(s){ s=(s||'').replace(/[\\/:*?"<>|]/g,'-').replace(/\s+/g,' ').trim(); return s||'未命名'; }
+  function toast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('show'); },1900); }
+
+  // ---- 轻量 Markdown 渲染（用于预览，复制仍用原始 Markdown）----
+  function mdToHtml(md){
+    var lines=String(md||'').replace(/\r\n?/g,'\n').split('\n');
+    var out=[], i=0;
+    function inline(s){
+      s=escapeHtml(s);
+      s=s.replace(/`([^`]+)`/g,function(_,c){ return '<code>'+c+'</code>'; });
+      s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+      s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,function(_,t,u){ return '<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+t+'</a>'; });
+      s=s.replace(/!\[([^\]]*)\]\(((?:data:image\/[^)\s]+|https?:\/\/[^)\s]+|\/[^)\s]+))\)/g,function(_,alt,u){ return '<img src="'+u+'" alt="'+alt+'" style="max-width:100%;border-radius:10px;margin:6px 0;display:block">'; });
+      return s;
+    }
+    while(i<lines.length){
+      var line=lines[i];
+      if(/^\s*$/.test(line)){ i++; continue; }
+      var h=line.match(/^(#{1,3})\s+(.*)$/);
+      if(h){ var lvl=h[1].length; out.push('<h'+lvl+' class="md-h md-h'+lvl+'">'+inline(h[2])+'</h'+lvl+'>'); i++; continue; }
+      if(/^---+$/.test(line.trim())){ out.push('<hr>'); i++; continue; }
+      if(/^>\s?/.test(line)){
+        var q=[];
+        while(i<lines.length && /^>\s?/.test(lines[i])){ q.push(lines[i].replace(/^>\s?/,'')); i++; }
+        out.push('<blockquote>'+inline(q.join(' '))+'</blockquote>'); continue;
+      }
+      if(/^\s*[-*]\s+/.test(line)){
+        var items=[];
+        while(i<lines.length && /^\s*[-*]\s+/.test(lines[i])){ items.push('<li>'+inline(lines[i].replace(/^\s*[-*]\s+/,''))+'</li>'); i++; }
+        out.push('<ul class="md-ul">'+items.join('')+'</ul>'); continue;
+      }
+      var para=[];
+      while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,3})\s+/.test(lines[i]) && !/^\s*[-*]\s+/.test(lines[i]) && !/^>\s?/.test(lines[i]) && !/^---+$/.test(lines[i].trim())){
+        para.push(lines[i]); i++;
+      }
+      out.push('<p>'+inline(para.join(' '))+'</p>');
+    }
+    return out.join('');
+  }
+
+  // ---- 图文字段（文字 + 图片）支持 ----
+  // 字段值统一存为 { text:'', images:[base64,...] }；旧数据是纯字符串时按纯文字处理
+  function parseRich(v){
+    if(v==null||v==='') return { text:'', images:[] };
+    if(typeof v==='object') return { text:(v.text||''), images:(v.images||[]) };
+    try{ var o=JSON.parse(v); if(o&&typeof o==='object') return { text:(o.text||''), images:(o.images||[]) }; }catch(e){}
+    return { text:String(v), images:[] };
+  }
+  // ---- 多条目图文字段（关键结果/讨论）：值统一存为 [{text, images}, ...] ----
+  function parseEntries(v){
+    if(Array.isArray(v)) return v.map(function(e){ return { text:(e&&e.text)||'', images:(e&&e.images)||[] }; });
+    if(v==null||v==='') return [];
+    if(typeof v==='object') return [{ text:(v.text||''), images:(v.images||[]) }];  // 旧的 rich 对象兼容
+    try{ var o=JSON.parse(v); if(Array.isArray(o)) return parseEntries(o); if(o&&typeof o==='object') return [{ text:(o.text||''), images:(o.images||[]) }]; }catch(e){}
+    return [{ text:String(v), images:[] }];
+  }
+  function renderEntryImages(fid, idx, imgs){
+    if(!imgs||!imgs.length) return '';
+    return imgs.map(function(src,i){
+      return '<div class="rich-img"><img data-src="'+src+'" alt="图'+(i+1)+'" decoding="async" loading="lazy"><button class="ri-del" type="button" data-act="entry-img-del" data-fid="'+fid+'" data-idx="'+idx+'" data-img-idx="'+i+'" title="删除">×</button></div>';
+    }).join('');
+  }
+  // 只局部刷新某个条目的图片区，不动文字输入框（避免上传图片后焦点丢失）
+  function renderEntryImagesBox(fid, idx){
+    var box=document.getElementById('entry-imgs-'+fid+'-'+idx);
+    if(!box) return;
+    var ent=(entriesData[fid]||[])[idx];
+    var imgs=(ent&&ent.images)||[];
+    if(imgs.length){ box.style.display=''; box.innerHTML=renderEntryImages(fid, idx, imgs); scheduleLazyImages(box); }
+    else { box.style.display='none'; box.innerHTML=''; }
+  }
+  // 上传图片压缩到 800px 宽，转 JPEG base64
+  function compressImage(file){
+    return new Promise(function(res,rej){
+      if(!file||!file.type||file.type.indexOf('image/')!==0){ rej(new Error('请选择图片文件')); return; }
+      var reader=new FileReader();
+      reader.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          var maxW=800, w=img.width, h=img.height;
+          if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+          var canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+          var ctx=canvas.getContext('2d'); ctx.drawImage(img,0,0,w,h);
+          try{ res(canvas.toDataURL('image/jpeg',0.82)); }catch(e){ rej(new Error('图片处理失败')); }
+        };
+        img.onerror=function(){ rej(new Error('图片读取失败')); };
+        img.src=reader.result;
+      };
+      reader.onerror=function(){ rej(new Error('文件读取失败')); };
+      reader.readAsDataURL(file);
+    });
+  }
+  // 切换笔记 / 模板 / 新建时，从当前内容载入各图文字段的图片到 richImages
+  function loadRichFromNote(){
+    richImages={};
+    entriesData={};
+    var tpl=currentTemplate(); if(!tpl) return;
+    var values=null;
+    if(currentNoteId){ for(var i=0;i<notes.length;i++){ if(notes[i].id===currentNoteId){ values=notes[i].fields; break; } } }
+    if(!values) values=drafts[tpl.id]||{};
+    tpl.fields.forEach(function(f){
+      if(f.type==='rich'){ richImages[f.id]=parseRich(values[f.id]).images; }
+      else if(f.type==='entries'){ entriesData[f.id]=parseEntries(values[f.id]); }
+    });
+  }
+  // 图片延迟加载：把 img[data-src] 在空闲时逐个设为 src，避免大段 base64 同步解码阻塞主线程（导致界面卡死）
+  function scheduleLazyImages(container){
+    if(!container) return;
+    var imgs=container.querySelectorAll('img[data-src]');
+    if(!imgs.length) return;
+    var idx=0;
+    function next(){
+      if(idx>=imgs.length) return;
+      var im=imgs[idx];
+      var s=im.getAttribute('data-src');
+      im.removeAttribute('data-src');
+      im.src=s;
+      idx++;
+      setTimeout(next, 60);
+    }
+    setTimeout(next, 30);
+  }
+  // 渲染某个图文字段的图片缩略图
+  function renderRichImages(fid){
+    var box=document.getElementById('ri-'+fid); if(!box) return;
+    var imgs=richImages[fid]||[];
+    var cnt=document.getElementById('rc-'+fid); if(cnt) cnt.textContent=imgs.length+'/9';
+    box.innerHTML=imgs.map(function(src,i){
+      return '<div class="rich-img"><img data-src="'+src+'" alt="图'+(i+1)+'" decoding="async" loading="lazy"><button class="ri-del" type="button" data-act="rich-del" data-fid="'+fid+'" data-idx="'+i+'" title="删除">×</button></div>';
+    }).join('');
+    scheduleLazyImages(box);
+  }
+  // 把文字+图片同步进草稿并刷新预览
+  function syncRich(fid){
+    var tpl=currentTemplate(); if(!tpl) return;
+    var el=document.getElementById(fid);
+    var text=el?el.value:'';
+    if(!drafts[tpl.id]) drafts[tpl.id]={};
+    drafts[tpl.id][fid]={ text:text, images:(richImages[fid]||[]) };
+    renderMarkdown();
+  }
+  function handleRichUpload(fid, files){
+    var arr=richImages[fid]||[];
+    var remaining=9-arr.length;
+    if(remaining<=0){ toast('最多上传 9 张图片'); return; }
+    var list=Array.prototype.slice.call(files,0,remaining);
+    Promise.all(list.map(compressImage)).then(function(urls){
+      richImages[fid]=arr.concat(urls);
+      renderRichImages(fid);
+      syncRich(fid);
+      toast('已添加 '+urls.length+' 张图片');
+    }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
+  }
+
+  // ---- 组内共享库（飞书多维表格）----
+  function bitableConfig(){
+    var stored=getLS(LS_BITABLE,null)||{};
+    var cfg={};
+    for(var k in BITABLE_DEFAULT){ cfg[k]=BITABLE_DEFAULT[k]; }
+    for(var k2 in stored){ if(stored[k2]) cfg[k2]=stored[k2]; }
+    return cfg;
+  }
+  function bitableConfigured(){ var c=bitableConfig(); return !!(c.app_id&&c.app_token&&c.table_id); }
+  function needBitableAuthor(){ var c=bitableConfig(); return !(c.author&&c.author.trim()); }
+
+  // ==================== 成员名单白名单校验（名字 + 学号，复用主表「类型=成员」记录） ====================
+  // 确保主表存在「学号」字段（type=1 文本，用于成员学号校验）
+  var LS_STUDENT_FIELD_OK='kb_student_field_ok';
+  // 确保主表存在「学号」字段（localStorage 缓存，避免每次 list_fields）
+  function ensureStudentField(){
+    if(getLS(LS_STUDENT_FIELD_OK,'')) return Promise.resolve();
+    var c=bitableConfig();
+    return feishuPost('/feishu/bitable', { app_id:c.app_id, app_secret:c.app_secret, app_token:c.app_token, table_id:c.table_id, op:'list_fields' })
+      .then(function(j){
+        var items=(j.data&&j.data.items)||[];
+        for(var i=0;i<items.length;i++){ if(items[i] && items[i].field_name==='学号'){ setLS(LS_STUDENT_FIELD_OK,'1'); return; } }
+        return feishuPost('/feishu/bitable', { app_id:c.app_id, app_secret:c.app_secret, app_token:c.app_token, table_id:c.table_id, op:'create_field', field_name:'学号', type:1 })
+          .then(function(){ setLS(LS_STUDENT_FIELD_OK,'1'); });
+      });
+  }
+  // 拉取主表记录（先确保学号字段，再 list 一次），返回 items，供成员校验与列表渲染复用
+  function fetchMainTableItems(){
+    return ensureStudentField().then(function(){
+      return bitableRequest('list');
+    }).then(function(j){
+      return (j.data&&j.data.items)||[];
+    });
+  }
+  // 用已拉取的主表数据判断是否成员（同步，无额外请求）：成员=「类型=成员」行，名字须匹配，学号若填则也须匹配
+  function isMemberFromItems(items){
+    var c=bitableConfig();
+    var author=(c.author||'').trim();
+    var sid=(c.student_id||'').trim();
+    for(var i=0;i<items.length;i++){
+      var f=items[i].fields||{};
+      if(String(f['类型']||'').indexOf('成员')<0) continue;
+      var nm=String(f['标题']||'').trim();
+      if(nm!==author) continue;
+      var sn=String(f['学号']||'').trim();
+      if(sn && sn!==sid) continue;   // 该成员填了学号，学号须匹配
+      return true;
+    }
+    return false;
+  }
+  // 判断当前用户是否在成员名单里（Promise<boolean>）
+  function checkMembership(){
+    if(!bitableConfigured()) return Promise.reject(new Error('未配置共享库'));
+    return fetchMainTableItems().then(function(items){ return isMemberFromItems(items); });
+  }
+  // 写操作前置校验：不在名单则 reject
+  function ensureMember(){
+    if(!bitableConfigured()) return Promise.reject(new Error('未配置共享库'));
+    if(needBitableAuthor()) return Promise.reject(new Error('请先在共享库设置里填你的名字'));
+    return checkMembership().then(function(ok){
+      if(!ok){
+        var c=bitableConfig();
+        throw new Error('你不在受邀成员名单里，请联系群主在飞书多维表格添加一条「类型=成员」的记录（标题=你的名字、学号=你的学号）。当前：'+(c.author||'')+(c.student_id?' / '+c.student_id:''));
+      }
+    });
+  }
+  function buildSharedFields(note){
+    var isExp=note.templateId==='exp';
+    var cfg=bitableConfig();
+    var tagId = isExp?'exp_tags':'pit_tags';
+    var tag = (note.fields && note.fields[tagId]) ? String(note.fields[tagId]).trim() : '';
+    // 内容存完整 Markdown（含 ## 分节、### 步骤），图片用 @@IMG<n>@@ 占位，
+    // 顺序与 uploadNoteImages 上传的 file_token 一一对应，便于展示时图文对应
+    var md=noteToMarkdown(note);
+    var imgIdx=0;
+    md=md.replace(/!\[[^\]]*\]\(data:image\/[^)]*\)/g, function(){ imgIdx++; return '@@IMG'+(imgIdx)+'@@'; });
+    var f = {
+      '类型': isExp?'经验':'踩坑',
+      '标题': (note.title||'（未命名）').slice(0,100),
+      '内容': md.slice(0,100000),
+      '作者': (cfg.author||'未署名').slice(0,30),
+      '时间': dateOnly(note.updatedAt||note.createdAt||Date.now())
+    };
+    if(tag) f['标签'] = tag.slice(0,100);
+    return f;
+  }
+  // 本地服务基址：远程部署的页面需指向本地 127.0.0.1:5173（Electron 壳内）；本地开发时为空（同源相对路径）
+  var API_BASE = (location.protocol==='http:' && (location.hostname==='127.0.0.1'||location.hostname==='localhost')) ? '' : 'http://127.0.0.1:5173';
+  function bitableRequest(op, fields, recordId, tableId, appToken){
+    var c=bitableConfig();
+    if(!bitableConfigured()){ return Promise.reject(new Error('未配置共享库')); }
+    var body={ app_id:c.app_id, app_secret:c.app_secret, app_token:appToken||c.app_token, table_id:tableId||c.table_id, op:op, fields:fields||{}, record_id:recordId||'' };
+    var isLocal = !!(window.kbAPI && window.kbAPI.selectDir) || (location.protocol==='http:' && (location.hostname==='127.0.0.1'||location.hostname==='localhost'));
+    if(!isLocal){ return Promise.reject(new Error('请通过桌面快捷方式（本地服务）打开后使用共享库')); }
+    var ctrl = ('AbortController' in window) ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 25000) : null;
+    return fetch(API_BASE + '/feishu/bitable',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl?ctrl.signal:undefined})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if(j&&j.code===0) return j; var m=(j&&j.msg)||'飞书返回异常'; if(j&&j.detail){ try{ m += ' · ' + JSON.stringify(j.detail); }catch(e){} } throw new Error(m); })
+      .catch(function(err){ if(timer) clearTimeout(timer); if(err&&err.name==='AbortError') throw new Error('请求超时：本地服务未响应'); throw err; });
+  }
+  // 通用飞书本地代理请求（POST JSON，用于字段管理和素材上传等非记录操作）
+  function feishuPost(path, body, timeoutMs){
+    var isLocal = !!(window.kbAPI && window.kbAPI.selectDir) || (location.protocol==='http:' && (location.hostname==='127.0.0.1'||location.hostname==='localhost'));
+    if(!isLocal){ return Promise.reject(new Error('请通过桌面快捷方式（本地服务）打开后使用共享库')); }
+    var ctrl = ('AbortController' in window) ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, timeoutMs||25000) : null;
+    return fetch(API_BASE + path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl?ctrl.signal:undefined})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if(j&&j.code===0) return j; var m=(j&&j.msg)||'飞书返回异常'; if(j&&j.detail){ try{ m += ' · ' + JSON.stringify(j.detail); }catch(e){} } throw new Error(m); })
+      .catch(function(err){ if(timer) clearTimeout(timer); if(err&&err.name==='AbortError') throw new Error('请求超时：本地服务未响应'); throw err; });
+  }
+  // 确保飞书表格存在「图片」附件字段（不存在则创建 type=17）
+  function ensureImageField(){
+    if(!bitableConfigured()) return Promise.reject(new Error('未配置共享库'));
+    var c=bitableConfig();
+    return feishuPost('/feishu/bitable', { app_id:c.app_id, app_secret:c.app_secret, app_token:c.app_token, table_id:c.table_id, op:'list_fields' })
+      .then(function(j){
+        var items=(j.data&&j.data.items)||[];
+        for(var i=0;i<items.length;i++){ if(items[i].field_name==='图片') return; }
+        return feishuPost('/feishu/bitable', { app_id:c.app_id, app_secret:c.app_secret, app_token:c.app_token, table_id:c.table_id, op:'create_field', field_name:'图片', type:17 });
+      });
+  }
+  // 收集笔记里所有图文条目的图片，逐个上传到飞书，返回 file_token 数组
+  function uploadNoteImages(note){
+    var tpl=findTpl(note.templateId);
+    var images=[];
+    if(tpl){ tpl.fields.forEach(function(f){
+      if(f.type==='rich'){
+        var r=parseRich(note.fields&&note.fields[f.id]);
+        if(r.images&&r.images.length) images=images.concat(r.images);
+      } else if(f.type==='entries'){
+        var elist=parseEntries(note.fields&&note.fields[f.id]);
+        elist.forEach(function(en){ if(en.images&&en.images.length) images=images.concat(en.images); });
+      }
+    }); }
+    if(!images.length) return Promise.resolve([]);
+    var c=bitableConfig();
+    var chain=Promise.resolve();
+    var tokens=[];
+    images.forEach(function(src, idx){
+      chain=chain.then(function(){
+        return feishuPost('/feishu/upload', {
+          app_id:c.app_id, app_secret:c.app_secret, app_token:c.app_token,
+          image:src, file_name:'kb_'+(idx+1)+'.jpg'
+        }, 60000).then(function(j){ tokens.push(j.file_token); });
+      });
+    });
+    return chain.then(function(){ return tokens; });
+  }
+  function renderShared(){
+    var grid=document.getElementById('shared-grid'); if(!grid) return;
+    if(!bitableConfigured()){
+      grid.innerHTML='<div class="cards-empty"><span class="em">📡</span>还没有配置共享库。点右上角「⋯ → 组内共享库设置」配置飞书多维表格后，这里就能看到组员分享的卡片。</div>';
+      return;
+    }
+    grid.innerHTML='<div class="cards-empty"><span class="em">⏳</span>正在加载组内共享卡片…</div>';
+    fetchMainTableItems().then(function(items){
+      if(!isMemberFromItems(items)){
+        grid.innerHTML='<div class="cards-empty"><span class="em">🔒</span>你尚未通过成员验证（名字 + 学号），无法查看组内共享内容。请点右上角「⋯ → 组内共享库设置」填写你的名字和学号。</div>';
+        return;
+      }
+      renderSharedCards(items);
+    }).catch(function(err){
+      grid.innerHTML='<div class="cards-empty"><span class="em">⚠️</span>加载失败：'+escapeHtml(err.message||err)+'</div>';
+    });
+  }
+  var sharedExpand={ exp:false, pit:false };
+  var SHARED_FOLD_LIMIT=4;
+  function renderSharedCardGroup(type, list, kw, me){
+    var expanded=sharedExpand[type]||!!kw;   // 搜索时强制展开
+    var total=list.length;
+    var show=list;
+    if(!expanded && total>SHARED_FOLD_LIMIT){ show=list.slice(0, SHARED_FOLD_LIMIT); }
+    var label=type==='exp'?'经验':'踩坑';
+    var html='<div class="card-group">'
+      +'<div class="card-group-head">'
+      +'<span class="card-group-title"><span class="dot '+type+'"></span>'+label+'</span>'
+      +'<span class="card-group-count">'+total+' 张</span>';
+    if(!kw && total>SHARED_FOLD_LIMIT){
+      html+='<button class="btn btn-sm btn-ghost" data-fold-toggle="'+type+'">'+(expanded?'收起':'展开全部（共 '+total+' 张）')+'</button>';
+    }
+    html+='</div><div class="cards-grid">';
+    show.forEach(function(it){
+      var f=it.fields||{};
+      var title=(f['标题']||'').toString().trim();
+      var content=(f['内容']||'').toString().trim();
+      var author=(f['作者']||'').toString().trim();
+      var isMine=me && author===me;
+      html+='<div class="kcard type-'+type+'">'
+        +'<div class="kcard-top"><span class="kcard-badge '+type+'">'+label+'</span>'
+        +'<span class="kcard-meta">'+escapeHtml(author)+(f['时间']?' · '+escapeHtml(fmtDate(String(f['时间']))):'')+'</span></div>'
+        +'<div class="kcard-title kcard-click" data-shared-view="'+escapeHtml(it.record_id)+'">'+escapeHtml(title||'（无标题）')+'</div>'
+        +(content?'<div class="kcard-summary kcard-click" data-shared-view="'+escapeHtml(it.record_id)+'" style="white-space:pre-wrap">'+escapeHtml(content.slice(0,300))+'</div>':'')
+        +(isMine?'<div class="kcard-actions"><button class="btn btn-sm" style="flex:0 0 auto;min-height:0;padding:8px 16px;color:var(--danger);border-color:#fecaca" data-shared-del="'+escapeHtml(it.record_id)+'">删除</button></div>':'')
+        +'</div>';
+    });
+    html+='</div></div>';
+    return html;
+  }
+  function renderSharedCards(items){
+    var grid=document.getElementById('shared-grid'); if(!grid) return;
+    var cfg=bitableConfig();
+    var me=(cfg.author||'').trim();
+    sharedItemsCache=items||[];
+    sharedLoaded=true;
+    var kw=sharedSearchKw.trim().toLowerCase();
+    // 先收集可见卡片（过滤空行/公告/资料/成员/关键词）
+    var visible=[];
+    sharedItemsCache.forEach(function(it){
+      var f=it.fields||{};
+      var title=(f['标题']||'').toString().trim();
+      var content=(f['内容']||'').toString().trim();
+      if(!title && !content) return;   // 跳过空行
+      var type=(f['类型']||'').toString();
+      if(type.indexOf('公告')>=0) return;   // 公告不进共享卡片，走公告弹窗
+      if(type.indexOf('资料')>=0) return;   // 资料不进共享卡片，走「资料共享」区
+      if(type.indexOf('成员')>=0) return;   // 成员名单不进共享卡片
+      if(kw){
+        var hay=(title+' '+((f['标签']||'')+'')+' '+((f['作者']||'')+'')).toLowerCase();
+        if(hay.indexOf(kw)<0) return;   // 关键词不匹配则跳过
+      }
+      visible.push(it);
+    });
+    var expList=visible.filter(function(it){ return String((it.fields&&it.fields['类型'])||'').indexOf('经验')>=0; });
+    var pitList=visible.filter(function(it){ return String((it.fields&&it.fields['类型'])||'').indexOf('踩坑')>=0; });
+    var html='';
+    if(cardTypeFilter!=='pit' && expList.length){ html+=renderSharedCardGroup('exp', expList, kw, me); }
+    if(cardTypeFilter!=='exp' && pitList.length){ html+=renderSharedCardGroup('pit', pitList, kw, me); }
+    if(!html){
+      html = kw
+        ? '<div class="cards-empty"><span class="em">🔍</span>没有匹配「'+escapeHtml(sharedSearchKw.trim())+'」的共享卡片。</div>'
+        : (cardTypeFilter!=='all'
+          ? '<div class="cards-empty"><span class="em">🌱</span>当前分类下没有共享卡片。</div>'
+          : '<div class="cards-empty"><span class="em">🌱</span>共享库里还没有卡片。在上方写一篇「经验/踩坑」，点「存入共享库」即可分享给组员。</div>');
+    }
+    grid.innerHTML=html;
+    grid.querySelectorAll('[data-fold-toggle]').forEach(function(b){
+      b.addEventListener('click',function(){
+        var type=b.getAttribute('data-fold-toggle');
+        sharedExpand[type]=!sharedExpand[type];
+        renderSharedCards(sharedItemsCache);
+      });
+    });
+  }
+  function filterShared(){
+    if(!sharedLoaded) return;
+    var inp=document.getElementById('shared-search');
+    sharedSearchKw=inp?inp.value:'';
+    renderSharedCards(sharedItemsCache);
+  }
+  var sharedItemsCache=[];
+  var sharedSearchKw='';
+  var sharedLoaded=false;
+  function openCardDetailHtml(html){
+    var b=document.getElementById('card-detail-body'); if(b) b.innerHTML=html;
+    var m=document.getElementById('card-detail-mask'); if(m) m.classList.add('open');
+  }
+  function closeCardDetail(){ var m=document.getElementById('card-detail-mask'); if(m) m.classList.remove('open'); }
+  function openNoteCardDetail(id){
+    var n=null; for(var i=0;i<notes.length;i++) if(notes[i].id===id) n=notes[i];
+    if(!n) return;
+    var isExp=n.templateId==='exp';
+    var head='<div class="kcard-top" style="margin-bottom:12px"><span class="kcard-badge '+(isExp?'exp':'pit')+'">'+(isExp?'经验':'踩坑')+'</span>'
+      +'<span class="kcard-meta">'+escapeHtml(fmtDate(dateOnly(n.updatedAt||n.createdAt)))+'</span></div>';
+    openCardDetailHtml(head+'<div class="preview-doc">'+mdToHtml(noteToMarkdown(n))+'</div>');
+  }
+  function openSharedCardDetail(rid){
+    var it=null; for(var i=0;i<sharedItemsCache.length;i++) if(sharedItemsCache[i].record_id===rid) it=sharedItemsCache[i];
+    if(!it) return;
+    var f=it.fields||{};
+    var title=(f['标题']||'').toString().trim()||'（无标题）';
+    var content=(f['内容']||'').toString().trim();
+    var type=(f['类型']||'').toString();
+    var isExp=type.indexOf('经验')>=0;
+    var author=(f['作者']||'').toString().trim();
+    var t=(f['时间']||'').toString().trim();
+    var head='<div class="kcard-top" style="margin-bottom:12px"><span class="kcard-badge '+(isExp?'exp':'pit')+'">'+escapeHtml(isExp?'经验':'踩坑')+'</span>'
+      +'<span class="kcard-meta">'+escapeHtml(author)+(t?' · '+escapeHtml(fmtDate(String(t))):'')+'</span></div>';
+    // 把内容里的 @@IMG<n>@@ 占位符替换为 markdown 图片语法（与「图片」字段顺序一一对应），图文在文中对应展示
+    var atts=f['图片'];
+    if(typeof atts==='string'){ try{ atts=JSON.parse(atts); }catch(e){ atts=[]; } }
+    if(Array.isArray(atts) && atts.length){
+      var c=bitableConfig();
+      var urls=[];
+      atts.forEach(function(att){
+        if(typeof att==='string') att={file_token:att};
+        var ft=att&&att.file_token;
+        var url=att&&att.url;
+        if(!ft && !url){ urls.push(''); return; }
+        var src=API_BASE + '/feishu/media?';
+        if(url){ src+='&url='+encodeURIComponent(url); }
+        else { src+='&file_token='+encodeURIComponent(ft); }
+        urls.push(src);
+      });
+      if(/@@IMG\d+@@/.test(content)){
+        // 新数据：内容带占位符，图文内联对应
+        content=content.replace(/@@IMG(\d+)@@/g, function(_,n){ var u=urls[Number(n)-1]; return u?('![图'+n+']('+u+')'):''; });
+        content=content.replace(/@@IMG\d+@@/g, '');
+      } else {
+        // 旧数据：内容无占位符，是「字段名：值」扁平文本 → 还原成「## 字段名」结构，图片追加末尾
+        content=content.split('\n').map(function(line){
+          var idx=line.indexOf('：');
+          if(idx>0 && idx<24){ return '## '+line.slice(0,idx)+'\n'+line.slice(idx+1).trim(); }
+          return line;
+        }).join('\n\n');
+        var imgs=urls.filter(function(u){ return !!u; }).map(function(u,i){ return '![图'+(i+1)+']('+u+')'; }).join('\n');
+        if(imgs) content=(content?content+'\n\n':'')+imgs;
+      }
+    }
+    var body=content
+      ? '<div class="preview-doc">'+mdToHtml(content)+'</div>'
+      : '<div style="white-space:pre-wrap;word-break:break-word;line-height:1.7;color:var(--text-2)">'+escapeHtml(title)+'</div>';
+    openCardDetailHtml(head+body);
+  }
+  function openAnnounce(){
+    var m=document.getElementById('announce-mask'); if(m) m.classList.add('open');
+    renderAnnounce();
+  }
+  function closeAnnounce(){ var m=document.getElementById('announce-mask'); if(m) m.classList.remove('open'); }
+  function renderAnnounce(){
+    var body=document.getElementById('announce-body');
+    var nav=document.getElementById('nav-announce-body');
+    function show(html){ if(body) body.innerHTML=html; if(nav) nav.innerHTML=html; }
+    if(!bitableConfigured()){
+      show('<p style="color:var(--muted);margin:0">尚未配置共享库，无法拉取使用必看内容。请先到「⋯ → 组内共享库设置」配置。</p>');
+      return;
+    }
+    // 先用本地缓存立即显示，避免每次等待网络
+    var cache=getLS(LS_ANNOUNCE,null);
+    if(cache && cache.html){ show(cache.html); }
+    else { show('<p style="color:var(--muted);margin:0">正在加载使用必看…</p>'); }
+    var c=bitableConfig();
+    var annTable=c.ann_table_id||'';   // 独立公告表；未配置则回退主表按「类型=公告」过滤
+    var annToken=c.ann_app_token||'';  // 公告表在独立 base 时，用其专属 app_token
+    bitableRequest('list', null, null, annTable, annToken).then(function(j){
+      var items=(j.data&&j.data.items)||[];
+      var anns;
+      if(annTable){ anns=items; }
+      else { anns=items.filter(function(it){ var f=it.fields||{}; return String(f['类型']||'').indexOf('公告')>=0; }); }
+      anns.sort(function(a,b){
+        var ta=String((a.fields&&a.fields['时间'])||'');
+        var tb=String((b.fields&&b.fields['时间'])||'');
+        if(ta===tb) return 0;
+        return ta>tb?-1:1;
+      });
+      var html='';
+      anns.forEach(function(it){
+        var f=it.fields||{};
+        var title=(f['标题']||'').toString().trim()||'使用必看';
+        var content=(f['内容']||'').toString().trim();
+        if(!content) return;
+        var author=(f['作者']||'').toString().trim();
+        var time=f['时间']?fmtDate(String(f['时间'])):'';
+        html+='<div class="announce-item">'
+          +'<div class="announce-item-head"><b>'+escapeHtml(title)+'</b>'+(author||time?'<span class="announce-item-meta">'+escapeHtml(author)+(time?' · '+escapeHtml(time):'')+'</span>':'')+'</div>'
+          +'<div class="announce-item-body">'+escapeHtml(content)+'</div>'
+          +'</div>';
+      });
+      if(!html) html='<p style="color:var(--muted);margin:0">暂无使用必看内容。</p>';
+      show(html);
+      setLS(LS_ANNOUNCE,{ html:html, at:Date.now() });
+    }).catch(function(err){
+      // 有缓存则保留缓存显示，仅首次（无缓存）才提示失败
+      if(!(cache && cache.html)) show('<p style="color:var(--danger);margin:0">加载失败：'+escapeHtml(err.message||err)+'</p>');
+    });
+  }
+  function pushToShared(note){
+    if(!bitableConfigured()){ openBitableSettings(); toast('请先配置组内共享库'); return; }
+    if(needBitableAuthor()){ openBitableSettings(); toast('请先在共享库设置里填你的名字'); return; }
+    var rid=note.sharedRecordId||'';
+    var op=rid?'update':'create';
+    toast(rid?'正在更新共享库…':'正在存入共享库…');
+    ensureMember().then(function(){
+      return ensureImageField();
+    }).then(function(){
+      return uploadNoteImages(note);
+    }).then(function(tokens){
+      var fields=buildSharedFields(note);
+      if(tokens && tokens.length){ fields['图片']=tokens.map(function(t){ return {file_token:t}; }); }
+      else if(rid){ fields['图片']=[]; }   // 更新且无图：清空旧附件
+      return bitableRequest(op, fields, rid);
+    }).then(function(j){
+      // 首次分享成功后，记住飞书记录 id，下次编辑后点「存入」就走更新而非新增
+      if(!rid && j && j.data && j.data.record && j.data.record.record_id){
+        note.sharedRecordId=j.data.record.record_id;
+        for(var i=0;i<notes.length;i++) if(notes[i].id===note.id){ notes[i]=note; break; }
+        setLS(LS_NOTES,notes);
+      }
+      toast(rid?'已更新共享库':'已存入组内共享库');
+    }).catch(function(err){ toast((rid?'更新':'存入')+'失败：'+((err&&err.message)||'未知错误')); });
+  }
+  function deleteFromShared(recordId){
+    if(!bitableConfigured()){ openBitableSettings(); toast('请先配置组内共享库'); return; }
+    toast('正在从共享库删除…');
+    ensureMember().then(function(){
+      return bitableRequest('delete', null, recordId);
+    }).then(function(){
+      // 清掉本地笔记里残留的记录 id，避免下次「存入」走更新时指向已删除的记录
+      for(var i=0;i<notes.length;i++) if(notes[i].sharedRecordId===recordId){ notes[i].sharedRecordId=''; }
+      setLS(LS_NOTES,notes);
+      toast('已删除');
+      renderShared();
+    }).catch(function(err){ toast('删除失败：'+((err&&err.message)||'未知错误')); });
+  }
+  // ==================== 资料共享（PDF） ====================
+  var resItemsCache=[], resSearchKw='', resLoaded=false, resFile=null;
+
+  // 确保飞书表格存在「附件」字段（type=17，用于 PDF 等文件）
+  function ensureResField(){
+    if(!bitableConfigured()) return Promise.reject(new Error('未配置共享库'));
+    var c=bitableConfig();
+    return feishuPost('/feishu/bitable', { app_id:c.app_id, app_secret:c.app_secret, app_token:c.app_token, table_id:c.table_id, op:'list_fields' })
+      .then(function(j){
+        var items=(j.data&&j.data.items)||[];
+        for(var i=0;i<items.length;i++){ if(items[i].field_name==='附件') return; }
+        return feishuPost('/feishu/bitable', { app_id:c.app_id, app_secret:c.app_secret, app_token:c.app_token, table_id:c.table_id, op:'create_field', field_name:'附件', type:17 });
+      });
+  }
+
+  // 解析附件字段 cell 值为数组 [{file_token, name, url}]
+  function parseAttachments(v){
+    if(Array.isArray(v)) return v;
+    if(typeof v==='string'){ try{ var o=JSON.parse(v); if(Array.isArray(o)) return o; }catch(e){} return v?[{file_token:v}]:[]; }
+    return [];
+  }
+
+  function readFileAsDataURL(file){
+    return new Promise(function(res,rej){
+      var r=new FileReader();
+      r.onload=function(){ res(r.result); };
+      r.onerror=function(){ rej(new Error('读取文件失败')); };
+      r.readAsDataURL(file);
+    });
+  }
+
+  // 根据文件扩展名推断 MIME 类型（用于飞书上传；脚本/文本/PDF/压缩包/Office 等）
+  function getMimeByFilename(name){
+    var ext=String(name||'').toLowerCase().split('.').pop();
+    var map={
+      'pdf':'application/pdf',
+      'py':'text/x-python','sh':'text/x-sh','js':'text/javascript','m':'text/plain',
+      'ipynb':'application/json','json':'application/json','txt':'text/plain','md':'text/markdown','csv':'text/csv',
+      'zip':'application/zip','gz':'application/gzip','tar':'application/x-tar','rar':'application/vnd.rar',
+      'jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png','gif':'image/gif','svg':'image/svg+xml',
+      'doc':'application/msword','docx':'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls':'application/vnd.ms-excel','xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'ppt':'application/vnd.ms-powerpoint','pptx':'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    };
+    return map[ext] || 'application/octet-stream';
+  }
+
+  function uploadPdf(){
+    if(!bitableConfigured()){ openBitableSettings(); toast('请先配置组内共享库'); return; }
+    if(needBitableAuthor()){ openBitableSettings(); toast('请先在共享库设置里填你的名字'); return; }
+    if(!resFile){ toast('请先选择文件'); return; }
+    var title=document.getElementById('res-title').value.trim();
+    if(!title){ toast('请填写标题'); return; }
+    var tags=document.getElementById('res-tags').value.trim();
+    var desc=document.getElementById('res-desc').value.trim();
+    var c=bitableConfig();
+    var btn=document.getElementById('btn-res-upload');
+    btn.disabled=true; btn.textContent='正在上传…';
+    toast('正在上传文件…');
+    ensureMember().then(function(){
+      return ensureResField();
+    }).then(function(){
+      return readFileAsDataURL(resFile);
+    }).then(function(dataUrl){
+      return feishuPost('/feishu/upload_file', {
+        app_id:c.app_id, app_secret:c.app_secret, app_token:c.app_token,
+        file:dataUrl, file_name:resFile.name, parent_type:'bitable_file', mime:getMimeByFilename(resFile.name)
+      }, 120000);
+    }).then(function(j){
+      var fields={
+        '类型':'资料',
+        '标题':title.slice(0,100),
+        '作者':(c.author||'未署名').slice(0,30),
+        '时间':todayStr(),
+        '附件':[{ file_token:j.file_token }]
+      };
+      if(tags) fields['标签']=tags.slice(0,100);
+      if(desc) fields['内容']=desc.slice(0,500);
+      return bitableRequest('create', fields);
+    }).then(function(){
+      toast('已上传到组内共享');
+      resFile=null;
+      document.getElementById('res-file-name').textContent='未选择文件';
+      document.getElementById('res-file-name').classList.remove('has');
+      document.getElementById('res-title').value='';
+      document.getElementById('res-tags').value='';
+      document.getElementById('res-desc').value='';
+      renderResources();
+    }).catch(function(err){
+      toast('上传失败：'+((err&&err.message)||'未知错误'));
+    }).then(function(){
+      btn.disabled=false; btn.textContent='上传到组内共享';
+    });
+  }
+
+  function renderResources(){
+    var grid=document.getElementById('res-grid'); if(!grid) return;
+    if(!bitableConfigured()){
+      grid.innerHTML='<div class="cards-empty"><span class="em">📡</span>还没有配置共享库。点右上角「⋯ → 组内共享库设置」配置飞书多维表格后，这里就能共享和查看 PDF 资料。</div>';
+      return;
+    }
+    grid.innerHTML='<div class="cards-empty"><span class="em">⏳</span>正在加载共享资料…</div>';
+    fetchMainTableItems().then(function(items){
+      if(!isMemberFromItems(items)){
+        grid.innerHTML='<div class="cards-empty"><span class="em">🔒</span>你尚未通过成员验证（名字 + 学号），无法查看组内共享资料。请点右上角「⋯ → 组内共享库设置」填写你的名字和学号。</div>';
+        return;
+      }
+      var res=items.filter(function(it){ var f=it.fields||{}; return String(f['类型']||'').indexOf('资料')>=0; });
+      res.sort(function(a,b){
+        var ta=String((a.fields&&a.fields['时间'])||'');
+        var tb=String((b.fields&&b.fields['时间'])||'');
+        if(ta===tb) return 0; return ta>tb?-1:1;
+      });
+      resItemsCache=res; resLoaded=true;
+      renderResourceItems(res);
+    }).catch(function(err){
+      grid.innerHTML='<div class="cards-empty"><span class="em">⚠️</span>加载失败：'+escapeHtml(err.message||err)+'</div>';
+    });
+  }
+
+  function renderResourceItems(items){
+    var grid=document.getElementById('res-grid'); if(!grid) return;
+    var cfg=bitableConfig();
+    var me=(cfg.author||'').trim();
+    var kw=resSearchKw.trim().toLowerCase();
+    var html='';
+    (items||[]).forEach(function(it){
+      var f=it.fields||{};
+      var title=(f['标题']||'').toString().trim();
+      var atts=parseAttachments(f['附件']);
+      if(!title && !atts.length) return;
+      var desc=(f['内容']||'').toString().trim();
+      var tags=(f['标签']||'').toString();
+      var author=(f['作者']||'').toString().trim();
+      var t=(f['时间']||'').toString().trim();
+      if(kw){
+        var hay=(title+' '+tags+' '+author).toLowerCase();
+        if(hay.indexOf(kw)<0) return;
+      }
+      var isMine=me && author===me;
+      var tagHtml='';
+      if(tags){
+        tagHtml=tags.split(/[,，]/).map(function(s){ s=s.trim(); return s?'<span class="res-tag">'+escapeHtml(s)+'</span>':''; }).join('');
+      }
+      var dl='';
+      if(atts.length){
+        var att=atts[0];
+        var ft=att&&att.file_token;
+        var url=att&&att.url;
+        var name=(att&&att.name)||'';
+        if(ft||url){
+          var src=API_BASE + '/feishu/media?';
+          // bitable 附件必须用 url（含 extra 鉴权参数），file_token 直连 download 会 400/403
+          if(url){ src+='&url='+encodeURIComponent(url); }
+          else { src+='&file_token='+encodeURIComponent(ft); }
+          src+='&download=1&name='+encodeURIComponent(name||title);
+          var dlName=name||title;
+          dl='<button class="btn btn-sm" data-res-dl="'+escapeHtml(it.record_id)+'" data-res-url="'+escapeHtml(src)+'" data-res-name="'+escapeHtml(dlName)+'"><span style="display:inline-flex;align-items:center;gap:6px">'+icon('download',15)+'下载</span></button>';
+        }
+      }
+      html+='<div class="res-item">'
+        +'<div class="res-ic">'+icon('file',20)+'</div>'
+        +'<div class="res-main">'
+        +'<div class="res-title">'+escapeHtml(title||'（未命名）')+'</div>'
+        +(desc?'<div class="res-desc">'+escapeHtml(desc)+'</div>':'')
+        +'<div class="res-meta">'+(author?'<span>'+escapeHtml(author)+'</span>':'')+(t?'<span>'+escapeHtml(fmtDate(t))+'</span>':'')+tagHtml+'</div>'
+        +'</div>'
+        +'<div class="res-actions">'
+        +dl
+        +(isMine?'<button class="btn btn-sm" style="color:var(--danger);border-color:#fecaca" data-res-del="'+escapeHtml(it.record_id)+'">删除</button>':'')
+        +'</div>'
+        +'</div>';
+    });
+    if(!html){
+      html = kw
+        ? '<div class="cards-empty"><span class="em">🔍</span>没有匹配「'+escapeHtml(resSearchKw.trim())+'」的资料。</div>'
+        : '<div class="cards-empty"><span class="em">📄</span>共享库里还没有资料。在上方选择一个文件，填好标题后点「上传到组内共享」。</div>';
+    }
+    grid.innerHTML=html;
+  }
+
+  function filterResources(){
+    if(!resLoaded) return;
+    var inp=document.getElementById('res-search');
+    resSearchKw=inp?inp.value:'';
+    renderResourceItems(resItemsCache);
+  }
+
+  function deleteResource(recordId){
+    if(!bitableConfigured()){ openBitableSettings(); toast('请先配置组内共享库'); return; }
+    toast('正在删除…');
+    ensureMember().then(function(){
+      return bitableRequest('delete', null, recordId);
+    }).then(function(){
+      toast('已删除');
+      renderResources();
+    }).catch(function(err){ toast('删除失败：'+((err&&err.message)||'未知错误')); });
+  }
+
+  function downloadResource(url, name){
+    toast('正在下载…');
+    fetch(url).then(function(r){
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.blob();
+    }).then(function(blob){
+      var objUrl=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=objUrl; a.download=name||'download';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(objUrl); }, 2000);
+      toast('下载完成');
+    }).catch(function(err){
+      toast('下载失败：'+((err&&err.message)||'未知错误'));
+    });
+  }
+
+  function openBitableSettings(){
+    var c=bitableConfig();
+    document.getElementById('bt-appid').value=c.app_id||'';
+    document.getElementById('bt-apptoken').value=c.app_token||'';
+    document.getElementById('bt-tableid').value=c.table_id||'';
+    document.getElementById('bt-ann-tableid').value=c.ann_table_id||'';
+    document.getElementById('bt-ann-apptoken').value=c.ann_app_token||'';
+    document.getElementById('bt-author').value=c.author||'';
+    document.getElementById('bt-sid').value=c.student_id||'';
+    updateBitableStatus();
+    document.getElementById('bitable-mask').classList.add('open');
+  }
+  function updateBitableStatus(){
+    var st=document.getElementById('bitable-status'); if(!st) return;
+    st.textContent=bitableConfigured()?'已配置':'未配置';
+    st.style.color=bitableConfigured()?'var(--green)':'';
+  }
+  function closeBitableSettings(){ document.getElementById('bitable-mask').classList.remove('open'); }
+
+  // ---- 存储 ----
+  function getLS(k,def){ try{ var v=localStorage.getItem(k); return v==null?def:JSON.parse(v); }catch(e){ return def; } }
+  function setLS(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ toast('保存失败：浏览器存储不可用'); } }
+
+  // ---- 默认模板（3 个）----
+  var _fid=0;
+  function fid(){ return 'f'+(++_fid)+'_'+Math.random().toString(36).slice(2,6); }
+  function defaultTemplates(){
+    return [
+      { id:'lit', name:'文献笔记', hint:'保存到 Obsidian 的 10-文献笔记 文件夹', fields:[
+        {id:'lit_title',label:'论文标题',type:'title'},{id:'lit_author',label:'作者',type:'text'},{id:'lit_venue',label:'期刊 / 会议',type:'text'},
+        {id:'lit_year',label:'年份',type:'text'},{id:'lit_doi',label:'DOI / 链接',type:'text'},{id:'lit_tags',label:'标签',type:'text'},
+        {id:'lit_summary',label:'一句话概括',type:'short'},{id:'lit_problem',label:'解决的问题',type:'textarea'},{id:'lit_method',label:'方法',type:'textarea'},
+        {id:'lit_result',label:'关键结果 / 讨论',type:'entries'},{id:'lit_ref',label:'可借鉴的点',type:'textarea'},{id:'lit_note',label:'我的疑问 / 备注',type:'short'}
+      ]},
+      { id:'exp', name:'经验', hint:'', fields:[
+        {id:'exp_title',label:'标题',type:'title'},{id:'exp_tags',label:'标签',type:'text'},
+        {id:'exp_bg',label:'背景',type:'entries'},{id:'exp_steps',label:'做法',type:'entries',unit:'步骤'},
+        {id:'exp_result',label:'结果',type:'textarea'},{id:'exp_why',label:'为什么有效',type:'textarea'},{id:'exp_links',label:'相关链接',type:'text'}
+      ]},
+      { id:'pit', name:'踩坑', hint:'', fields:[
+        {id:'pit_title',label:'标题',type:'title'},{id:'pit_tags',label:'标签',type:'text'},
+        {id:'pit_phenomenon',label:'现象',type:'entries'},{id:'pit_cause',label:'原因',type:'textarea'},
+        {id:'pit_fix',label:'解决办法',type:'entries',unit:'步骤'},{id:'pit_avoid',label:'避免办法',type:'short'},{id:'pit_links',label:'相关链接',type:'text'}
+      ]}
+    ];
+  }
+
+  // ---- 状态 ----
+  var templates=[], notes=[], tasks=[];
+  var editingFieldId=null;
+  var currentTplId=null, currentNoteId=null, drafts={}, currentMarkdown='', currentFile='未命名', searchKw='', previewMode='rendered';
+  var richImages={};  // 图文字段：{ [fieldId]: [base64, ...] }，当前编辑态下各图文字段的图片
+  var entriesData={};  // 多条目图文字段：{ [fieldId]: [ {text, images:[...]}, ... ] }，当前编辑态
+  var pendingEntryUpload=null;  // { fid, idx }，待写入图片的条目
+  var unsavedChanges=false;    // 是否有未保存的表单修改（用于退出前提示）
+  var saveDirPath='', dirName='';  // 保存文件夹路径（字符串，存 localStorage）
+
+  // ---- 项目进度状态 ----
+  var projects=[];
+  var curProjectId=null, curProject=null;  // curProject 为当前编辑态对象（未保存前改动暂存于此）
+
+  function loadAll(){
+    templates=getLS(LS_TEMPLATES,null)||defaultTemplates();
+    notes=getLS(LS_NOTES,[]);
+    tasks=getLS(LS_TASKS,null);
+    projects=getLS(LS_PROJECTS,[]);
+    if(!Array.isArray(notes)) notes=[];
+    if(!Array.isArray(tasks)){ tasks=[]; }
+    if(!Array.isArray(projects)) projects=[];
+    loadProjectTpl();
+    migrate();
+    currentTplId=templates[0]?templates[0].id:null;
+  }
+
+  // ---- 迁移：去掉 经验贴/踩坑贴 模板，合并到 经验/踩坑 ----
+  function migrate(){
+    var before=templates.length;
+    templates=templates.filter(function(t){ return t.id!=='exps' && t.id!=='pits'; });
+    if(!templates.length) templates=defaultTemplates();
+    var changed=false;
+    notes.forEach(function(n){
+      if(n.templateId==='exps'){ n.templateId='exp'; changed=true; }
+      if(n.templateId==='pits'){ n.templateId='pit'; changed=true; }
+    });
+    tasks.forEach(function(t){ delete t.due; delete t.priority; delete t.doneAt; });
+    if(before!==templates.length || changed){
+      setLS(LS_TEMPLATES,templates); setLS(LS_NOTES,notes); setLS(LS_TASKS,tasks);
+    }
+    // v2：把模板/笔记的字段 id 统一为稳定的默认 id（按字段名匹配），
+    // 这样「重置为默认模板」时字段能精确还原，且旧笔记内容不丢。
+    var ver=getLS(LS_SCHEMA,1);
+    if(ver<2){
+      templates.forEach(function(t){
+        var def=findDefaultById(t.id); if(!def) return;
+        var labelToStable={}; def.fields.forEach(function(f){ labelToStable[f.label]=f.id; });
+        var oldLabelById={}; t.fields.forEach(function(f){ oldLabelById[f.id]=f.label; });
+        t.fields.forEach(function(f){ if(labelToStable[f.label]) f.id=labelToStable[f.label]; });
+        notes.forEach(function(n){
+          if(n.templateId!==t.id||!n.fields) return;
+          var nf={};
+          for(var oid in n.fields){
+            var lbl=oldLabelById[oid];
+            var s=(lbl&&labelToStable[lbl])?labelToStable[lbl]:oid;
+            nf[s]=n.fields[oid];
+          }
+          n.fields=nf;
+        });
+      });
+      setLS(LS_SCHEMA,2); setLS(LS_TEMPLATES,templates); setLS(LS_NOTES,notes);
+    }
+    // v3：把文献笔记的「关键结论 / 结果」升级为图文字段（文字+图片）
+    var ver3=getLS(LS_SCHEMA,1);
+    if(ver3<3){
+      templates.forEach(function(t){
+        if(t.id==='lit'){ t.fields.forEach(function(f){ if(f.id==='lit_result') f.type='rich'; }); }
+      });
+      setLS(LS_SCHEMA,3); setLS(LS_TEMPLATES,templates);
+    }
+    // v4：把「经验/踩坑」字段调整为 7 项（标题/标签/背景(或现象)/做法(或原因)/结果(或解决办法)/为什么有效(或避免办法)/相关链接）
+    var ver4=getLS(LS_SCHEMA,1);
+    if(ver4<4){
+      var defExp=findDefaultById('exp'), defPit=findDefaultById('pit');
+      templates.forEach(function(t){
+        var def=(t.id==='exp')?defExp:((t.id==='pit')?defPit:null);
+        if(def){ t.fields=def.fields.map(function(f){ return {id:f.id,label:f.label,type:f.type}; }); }
+      });
+      setLS(LS_SCHEMA,4); setLS(LS_TEMPLATES,templates);
+    }
+    // v5：把文献笔记的「关键结论 / 结果」升级为多条目图文字段（每条照片在上、文字在下）
+    var ver5=getLS(LS_SCHEMA,1);
+    if(ver5<5){
+      templates.forEach(function(t){
+        if(t.id!=='lit') return;
+        t.fields.forEach(function(f){
+          if(f.id==='lit_result'){ f.type='entries'; if(f.label==='关键结论 / 结果') f.label='关键结果 / 讨论'; }
+        });
+      });
+      notes.forEach(function(n){
+        if(n.templateId!=='lit'||!n.fields) return;
+        var v=n.fields.lit_result;
+        if(v!=null && !Array.isArray(v)){ n.fields.lit_result=parseEntries(v); }
+      });
+      setLS(LS_SCHEMA,5); setLS(LS_TEMPLATES,templates); setLS(LS_NOTES,notes);
+    }
+    // v6：彻底移除示例数据（不再内置示例，并把历史遗留的 sample 数据清掉）
+    var ver6=getLS(LS_SCHEMA,1);
+    if(ver6<6){
+      notes=notes.filter(function(n){ return !n.sample; });
+      tasks=tasks.filter(function(t){ return !t.sample; });
+      setLS(LS_SCHEMA,6); setLS(LS_NOTES,notes); setLS(LS_TASKS,tasks);
+    }
+    // v7：把「经验」的「做法」和「踩坑」的「现象」升级为多条目图文字段（每条文字+图片）
+    var ver7=getLS(LS_SCHEMA,1);
+    if(ver7<7){
+      templates.forEach(function(t){
+        var targetId=(t.id==='exp')?'exp_steps':((t.id==='pit')?'pit_phenomenon':null);
+        if(!targetId) return;
+        t.fields.forEach(function(f){ if(f.id===targetId) f.type='entries'; });
+      });
+      notes.forEach(function(n){
+        var targetId=(n.templateId==='exp')?'exp_steps':((n.templateId==='pit')?'pit_phenomenon':null);
+        if(!targetId||!n.fields) return;
+        var v=n.fields[targetId];
+        if(v!=null && !Array.isArray(v)){ n.fields[targetId]=parseEntries(v); }
+      });
+      setLS(LS_SCHEMA,7); setLS(LS_TEMPLATES,templates); setLS(LS_NOTES,notes);
+    }
+    // v8：把「经验」的「背景」升级为多条目图文字段（每条文字+图片）
+    var ver8=getLS(LS_SCHEMA,1);
+    if(ver8<8){
+      templates.forEach(function(t){
+        if(t.id!=='exp') return;
+        t.fields.forEach(function(f){ if(f.id==='exp_bg') f.type='entries'; });
+      });
+      notes.forEach(function(n){
+        if(n.templateId!=='exp'||!n.fields) return;
+        var v=n.fields.exp_bg;
+        if(v!=null && !Array.isArray(v)){ n.fields.exp_bg=parseEntries(v); }
+      });
+      setLS(LS_SCHEMA,8); setLS(LS_TEMPLATES,templates); setLS(LS_NOTES,notes);
+    }
+    // v9：把「踩坑」的「解决办法」升级为多步骤图文（与经验「做法」一致，步骤一/步骤二）
+    var ver9=getLS(LS_SCHEMA,1);
+    if(ver9<9){
+      templates.forEach(function(t){
+        if(t.id!=='pit') return;
+        t.fields.forEach(function(f){ if(f.id==='pit_fix') f.type='entries'; });
+      });
+      notes.forEach(function(n){
+        if(n.templateId!=='pit'||!n.fields) return;
+        var v=n.fields.pit_fix;
+        if(v!=null && !Array.isArray(v)){ n.fields.pit_fix=parseEntries(v); }
+      });
+      setLS(LS_SCHEMA,9); setLS(LS_TEMPLATES,templates); setLS(LS_NOTES,notes);
+    }
+    // v10：给「经验·做法」「踩坑·解决办法」打上步骤标记（步骤一/步骤二），其余图文条目字段保持「条目」叫法
+    var ver10=getLS(LS_SCHEMA,1);
+    if(ver10<10){
+      templates.forEach(function(t){
+        if(t.id!=='exp'&&t.id!=='pit') return;
+        t.fields.forEach(function(f){
+          if(f.id==='exp_steps'||f.id==='pit_fix'){ f.type='entries'; f.unit='步骤'; }
+        });
+      });
+      setLS(LS_SCHEMA,10); setLS(LS_TEMPLATES,templates);
+    }
+  }
+
+  // ---- 模板查找 ----
+  function currentTemplate(){ for(var i=0;i<templates.length;i++) if(templates[i].id===currentTplId) return templates[i]; return templates[0]; }
+  function tplName(id){ for(var i=0;i<templates.length;i++) if(templates[i].id===id) return templates[i].name; return '?'; }
+  function findTpl(id){ for(var i=0;i<templates.length;i++) if(templates[i].id===id) return templates[i]; return null; }
+  function findDefaultById(id){ var ds=defaultTemplates(); for(var i=0;i<ds.length;i++) if(ds[i].id===id) return ds[i]; return null; }
+
+  // ---- 导航 ----
+  function switchView(v){
+    if(curProject && v!=='projects') persistProject();
+    document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-view')===v); });
+    document.querySelectorAll('.view').forEach(function(s){ s.classList.remove('active'); });
+    document.getElementById('view-'+v).classList.add('active');
+    if(v==='projects') renderProjects();
+    if(v==='cards'){ renderCards(); renderShared(); }
+    if(v==='resources') renderResources();
+  }
+
+  // ---- 待处理 ----
+  function renderTodo(){
+    var pending=tasks.filter(function(t){ return !t.done; });
+    var done=tasks.filter(function(t){ return t.done; });
+    document.getElementById('todo-count').textContent=pending.length+' 项';
+    var tb=document.getElementById('nav-todo'); tb.textContent=pending.length; tb.classList.toggle('zero',pending.length===0);
+    var box=document.getElementById('todo-list');
+    var html='';
+    if(!pending.length && !done.length){ html+='<div class="t-empty"><span class="em">🗒️</span>暂无待办，添加一条开始吧</div>'; }
+    else if(!pending.length){ html+='<div class="t-empty">待办都清空啦，干得漂亮 ✨</div>'; }
+    pending.forEach(function(t){
+      html+='<div class="todo-item">'
+        +'<button class="icon-btn done-btn" data-done="'+t.id+'" title="完成">'+icon('check')+'</button>'
+        +'<div class="t-body"><div class="t-title">'+escapeHtml(t.title)+'</div></div>'
+        +'<button class="icon-btn danger" data-del="'+t.id+'" title="删除">'+icon('trash')+'</button>'
+        +'</div>';
+    });
+    if(done.length){ html+='<div class="done-divider">已完成 '+done.length+' 项</div>'; }
+    done.forEach(function(t){
+      html+='<div class="todo-item done">'
+        +'<div class="t-body"><div class="t-title">'+escapeHtml(t.title)+'</div></div>'
+        +'<button class="icon-btn" data-undone="'+t.id+'" title="恢复为待办">'+icon('undo')+'</button>'
+        +'<button class="icon-btn danger" data-del="'+t.id+'" title="删除">'+icon('trash')+'</button>'
+        +'</div>';
+    });
+    box.innerHTML=html;
+    box.querySelectorAll('[data-done]').forEach(function(b){ b.addEventListener('click',function(){ setTaskDone(b.getAttribute('data-done')); }); });
+    box.querySelectorAll('[data-undone]').forEach(function(b){ b.addEventListener('click',function(){ setTaskUndone(b.getAttribute('data-undone')); }); });
+    box.querySelectorAll('[data-del]').forEach(function(b){ b.addEventListener('click',function(){ delTask(b.getAttribute('data-del')); }); });
+    if(notes.length>=30) document.getElementById('backup-hint').style.display='flex';
+  }
+  function setTaskDone(id){
+    tasks.forEach(function(t){ if(t.id===id) t.done=true; });
+    setLS(LS_TASKS,tasks); renderTodo(); syncTodoToDir(); toast('已完成');
+  }
+  function setTaskUndone(id){
+    tasks.forEach(function(t){ if(t.id===id) t.done=false; });
+    setLS(LS_TASKS,tasks); renderTodo(); syncTodoToDir(); toast('已恢复为待办');
+  }
+  function delTask(id){
+    tasks=tasks.filter(function(t){ return t.id!==id; });
+    setLS(LS_TASKS,tasks); renderTodo(); syncTodoToDir();
+  }
+  function addTask(){
+    var title=document.getElementById('task-title').value.trim();
+    if(!title){ toast('先填待办内容'); return; }
+    tasks.push({ id:'t'+Date.now(), title:title, done:false, createdAt:Date.now() });
+    setLS(LS_TASKS,tasks);
+    document.getElementById('task-title').value='';
+    renderTodo(); syncTodoToDir(); toast('已添加');
+  }
+  // 待处理清单同步到本地文件夹：待处理/待办清单.md（与笔记/项目同属本地分类归档）
+  function todoToMarkdown(){
+    var pending=tasks.filter(function(t){ return !t.done; });
+    var done=tasks.filter(function(t){ return t.done; });
+    var md='# 待处理\n\n## 未完成\n';
+    if(pending.length){ pending.forEach(function(t){ md+='- [ ] '+t.title+'\n'; }); }
+    else { md+='（暂无）\n'; }
+    md+='\n## 已完成\n';
+    if(done.length){ done.forEach(function(t){ md+='- [x] '+t.title+'\n'; }); }
+    else { md+='（暂无）\n'; }
+    return md;
+  }
+  function syncTodoToDir(){
+    if(!saveDirPath) return;
+    writeFileToDir('待办清单.md', todoToMarkdown(), '待处理').catch(function(){ /* 写入失败则忽略，待办仍存本机 */ });
+    autoBackup();
+  }
+
+  // ---- 知识笔记 ----
+  function renderTplTabs(){
+    var box=document.getElementById('tpl-tabs'); box.innerHTML='';
+    templates.forEach(function(t){
+      var d=document.createElement('div');
+      d.className='tab'+(t.id===currentTplId?' active':'');
+      d.textContent=t.name;
+      d.addEventListener('click',function(){ switchTemplate(t.id); });
+      box.appendChild(d);
+    });
+  }
+  function renderForm(){
+    var tpl=currentTemplate(); if(!tpl) return;
+    var area=document.getElementById('form-area');
+    var html='<div class="form-head"><h3 class="form-title">'+escapeHtml(tpl.name)+'</h3>'
+      +'</div>';
+    tpl.fields.forEach(function(f){
+      var req=(f.type==='title')?' <span class="req">*</span>':'';
+      html+='<div class="field" data-fid="'+f.id+'">';
+      html+='<label class="field-label" data-act="edit-field" data-fid="'+f.id+'"><span class="lbl-text">'+escapeHtml(f.label)+'</span><span class="lbl-edit-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg></span>'+req+'</label>';
+      if(f.type==='title'||f.type==='text'){ html+='<input id="'+f.id+'" placeholder="'+escapeHtml(f.label)+'">'; }
+      else if(f.type==='rich'){
+        if(richImages[f.id]===undefined) richImages[f.id]=[];
+        var rimgs=richImages[f.id];
+        html+='<div class="rich-actions">';
+        html+='<button class="btn btn-sm btn-ghost" data-act="rich-upload" data-fid="'+f.id+'">'+icon('upload',15)+' 上传图片</button>';
+        html+='<span class="rich-count" id="rc-'+f.id+'">'+(rimgs.length)+'/9</span>';
+        html+='<input type="file" class="rich-input" data-fid="'+f.id+'" accept="image/*" multiple hidden>';
+        html+='</div>';
+        html+='<div class="rich-imgs" id="ri-'+f.id+'"></div>';
+        html+='<textarea id="'+f.id+'" class="rich-text" placeholder="'+escapeHtml(f.label)+'（支持文字 + 图片）"></textarea>';
+      }
+      else if(f.type==='entries'){
+        if(entriesData[f.id]===undefined) entriesData[f.id]=[];
+        var elist=entriesData[f.id];
+        var unit=f.unit||'条目';
+        html+='<div class="entries-box">';
+        elist.forEach(function(en,i){
+          var itemLabel=f.unit?(unit+cnNum(i+1)):(unit+' '+(i+1));
+          html+='<div class="p-entry" data-entry-idx="'+i+'">'
+            +'<div class="p-entry-head">'
+            +'<span class="p-entry-type" style="background:var(--primary-soft);color:var(--primary)">'+itemLabel+'</span>'
+            +'<span class="spacer"></span>'
+            +'<button class="btn btn-sm btn-ghost" data-act="entry-upload" data-fid="'+f.id+'" data-idx="'+i+'">'+icon('upload',15)+' 上传图片</button>'
+            +'<button class="p-del-btn" data-act="entry-del" data-fid="'+f.id+'" data-idx="'+i+'" title="删除'+unit+'">×</button>'
+            +'</div>'
+            +'<div class="p-entry-imgs top" id="entry-imgs-'+f.id+'-'+i+'"'+(en.images&&en.images.length?'':' style="display:none"')+'>'+(en.images&&en.images.length?renderEntryImages(f.id,i,en.images):'')+'</div>'
+            +'<textarea data-entry-text data-fid="'+f.id+'" data-idx="'+i+'" placeholder="'+escapeHtml(f.label)+'…">'+escapeHtml(en.text||'')+'</textarea>'
+            +'</div>';
+        });
+        html+='</div>';
+        html+='<div class="p-add-row"><button class="btn btn-sm btn-ghost" data-act="entry-add" data-fid="'+f.id+'">+ 添加'+unit+'</button></div>';
+      }
+      else { html+='<textarea id="'+f.id+'" class="'+(f.type==='short'?'short':'')+'" placeholder="'+escapeHtml(f.label)+'"></textarea>'; }
+      if(editingFieldId===f.id){
+        html+='<div class="field-edit">';
+        html+='<input class="fe-name" data-fid="'+f.id+'" value="'+escapeHtml(f.label)+'" placeholder="字段名">';
+        html+='<select class="fe-type" data-fid="'+f.id+'">';
+        TYPE_OPTIONS.forEach(function(t){ html+='<option value="'+t.value+'"'+(f.type===t.value?' selected':'')+'>'+t.label+'</option>'; });
+        html+='</select>';
+        html+='<button class="icon-btn-sm" data-act="fe-up" data-fid="'+f.id+'" title="上移">↑</button>';
+        html+='<button class="icon-btn-sm" data-act="fe-down" data-fid="'+f.id+'" title="下移">↓</button>';
+        html+='<button class="icon-btn-sm danger" data-act="fe-del" data-fid="'+f.id+'" title="删除字段">×</button>';
+        html+='<button class="btn btn-sm btn-primary" data-act="fe-done" data-fid="'+f.id+'">完成</button>';
+        html+='</div>';
+      }
+      html+='</div>';
+    });
+    html+='<div class="form-foot">';
+    html+='<button class="btn btn-sm add-field-btn" data-act="add-field">+ 添加字段</button>';
+    html+='<button class="btn btn-sm btn-ghost" data-act="reset-tpl" style="margin-top:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg> 重置为默认模板</button>';
+    html+='</div>';
+    area.innerHTML=html;
+    var draft=drafts[tpl.id];
+    tpl.fields.forEach(function(f){
+      var el=document.getElementById(f.id); if(!el) return;
+      if(f.type==='rich'){ el.value=parseRich(draft?draft[f.id]:'').text; renderRichImages(f.id); }
+      else { el.value=(draft&&draft[f.id]!=null)?draft[f.id]:''; }
+    });
+    if(editingFieldId){ var ne=area.querySelector('.fe-name'); if(ne) ne.focus(); }
+    scheduleLazyImages(area);
+  }
+  function currentTplIndex(){ for(var i=0;i<templates.length;i++) if(templates[i].id===currentTplId) return i; return -1; }
+  function fieldIndex(tpl,fid){ for(var i=0;i<tpl.fields.length;i++) if(tpl.fields[i].id===fid) return i; return -1; }
+  function moveField(fid,dir){
+    var ti=currentTplIndex(); if(ti<0) return;
+    var flds=templates[ti].fields;
+    var i=fieldIndex(templates[ti],fid), j=i+dir;
+    if(i<0||j<0||j>=flds.length) return;
+    var tmp=flds[i]; flds[i]=flds[j]; flds[j]=tmp;
+    setLS(LS_TEMPLATES,templates); renderForm(); renderMarkdown();
+  }
+  function deleteField(fid){
+    var ti=currentTplIndex(); if(ti<0) return;
+    var tpl=templates[ti];
+    var i=fieldIndex(tpl,fid); if(i<0) return;
+    if(tpl.fields[i].type==='title'){ toast('标题字段不能删除'); return; }
+    tpl.fields.splice(i,1);
+    if(editingFieldId===fid) editingFieldId=null;
+    setLS(LS_TEMPLATES,templates); renderForm(); renderMarkdown();
+  }
+  function switchTemplate(id){
+    saveDraft(); currentTplId=id; currentNoteId=null;
+    editingFieldId=null;
+    unsavedChanges=false;
+    loadRichFromNote();
+    renderTplTabs(); renderForm(); renderMarkdown(); renderNoteList();
+  }
+  function collectFields(tpl){
+    var out={}; tpl.fields.forEach(function(f){ var el=document.getElementById(f.id); if(el) out[f.id]=el.value; });
+    tpl.fields.forEach(function(f){
+      if(f.type==='rich'){ out[f.id]={ text:(out[f.id]||''), images:(richImages[f.id]||[]) }; }
+      else if(f.type==='entries'){ out[f.id]=(entriesData[f.id]||[]); }
+    });
+    return out;
+  }
+  function saveDraft(){ var tpl=currentTemplate(); if(tpl) drafts[tpl.id]=collectFields(tpl); }
+  function clearForm(){
+    var tpl=currentTemplate(); if(!tpl) return;
+    richImages={};
+    entriesData={};
+    tpl.fields.forEach(function(f){ var el=document.getElementById(f.id); if(el) el.value=''; });
+    var t=todayStr();
+    var els=document.querySelectorAll('#form-area input');
+    for(var j=0;j<els.length;j++){ if(/日期/.test(els[j].placeholder)&&!els[j].value) els[j].value=t; }
+  }
+  function fieldsToMarkdown(tpl,values){
+    var title='', meta=[], sections=[];
+    tpl.fields.forEach(function(f){
+      var v=(values[f.id]||'');
+      if(f.type==='title'){ title=String(v).trim(); }
+      else if(f.type==='text'){ if(String(v).trim()) meta.push('**'+f.label+'：**'+String(v).trim()); }
+      else if(f.type==='rich'){
+        var r=parseRich(v); var rt=String(r.text||'').trim();
+        var rimgs=r.images||[];
+        if(rt||rimgs.length){
+          var rparts=['## '+f.label];
+          rimgs.forEach(function(src,i){ rparts.push('![图'+(i+1)+']('+src+')'); });
+          if(rt) rparts.push(rt);
+          sections.push(rparts.join('\n'));
+        }
+      }
+      else if(f.type==='entries'){
+        var elist=parseEntries(v);
+        if(elist.length){
+          var parts=['## '+f.label];
+          elist.forEach(function(en,i){
+            var txt=String(en.text||'').trim();
+            var imgs=en.images||[];
+            if(!txt&&!imgs.length) return;
+            parts.push('### '+(f.unit?f.unit+cnNum(i+1):'条目 '+(i+1)));
+            imgs.forEach(function(src,j){ parts.push('![图'+(j+1)+']('+src+')'); });
+            if(txt) parts.push(txt);
+          });
+          if(parts.length>1) sections.push(parts.join('\n'));
+        }
+      }
+      else { if(String(v).trim()) sections.push('## '+f.label+'\n'+String(v).trim()); }
+    });
+    var md='# '+(title||'（未命名）')+'\n\n';
+    meta.forEach(function(m){ md+='- '+m+'\n'; });
+    if(meta.length) md+='\n';
+    sections.forEach(function(s){ md+=s+'\n\n'; });
+    return md;
+  }
+  function noteToMarkdown(note){
+    var tpl=findTpl(note.templateId);
+    if(!tpl) return '# '+(note.title||'');
+    return fieldsToMarkdown(tpl, note.fields||{});
+  }
+  function renderMarkdown(){
+    var tpl=currentTemplate(); if(!tpl) return;
+    var values=collectFields(tpl);
+    var md=fieldsToMarkdown(tpl, values);
+    var title=''; tpl.fields.forEach(function(f){ if(f.type==='title'){ title=(values[f.id]||'').trim(); } });
+    currentMarkdown=md; currentFile=safeName(title);
+    renderPreview();
+  }
+  // 防抖：输入时不要逐字渲染（笔记含大段 base64 图片时逐字渲染会卡顿），停手 250ms 后再渲染
+  var mdRenderTimer=null;
+  function scheduleRenderMarkdown(){
+    if(mdRenderTimer) clearTimeout(mdRenderTimer);
+    mdRenderTimer=setTimeout(function(){ mdRenderTimer=null; renderMarkdown(); }, 250);
+  }
+  function renderPreview(){
+    var el=document.getElementById('preview');
+    if(!currentMarkdown || !currentMarkdown.trim()){ el.className='preview-doc'; el.innerHTML='<p style="color:var(--muted);margin:0">填写左侧表单，这里会实时生成预览。</p>'; return; }
+    if(previewMode==='src'){ el.className='preview-doc preview-src'; el.textContent=currentMarkdown; }
+    else {
+      el.className='preview-doc';
+      // 预览区不直接渲染 base64 图片（大段 base64 会阻塞主线程导致界面卡死），用占位符代替；图片完整保留在导出的 .md 与表单缩略图里
+      var md=currentMarkdown.replace(/!\[([^\]]*)\]\(data:image\/[^)\s]+\)/g, function(_,alt){ return '🖼️ '+(alt||'图片'); });
+      el.innerHTML=mdToHtml(md);
+    }
+  }
+  function getTitleValue(){
+    var tpl=currentTemplate(); if(!tpl) return '';
+    for(var i=0;i<tpl.fields.length;i++){ if(tpl.fields[i].type==='title'){ var el=document.getElementById(tpl.fields[i].id); return el?el.value.trim():''; } }
+    return '';
+  }
+  function saveNote(){
+    var tpl=currentTemplate(); if(!tpl) return null;
+    var title=getTitleValue();
+    if(!title){ toast('请先填写标题'); return null; }
+    saveDraft();
+    var isNew=!currentNoteId;
+    var prev=null; if(!isNew){ for(var i=0;i<notes.length;i++) if(notes[i].id===currentNoteId){ prev=notes[i]; break; } }
+    var note={ id: currentNoteId||('n'+Date.now()), templateId:tpl.id, title:title, fields:collectFields(tpl), updatedAt:Date.now() };
+    // 记住本地文件名：首次生成，之后改名也沿用，避免产生多份 .md
+    note.localFileName=(prev&&prev.localFileName)||(safeName(title)+'.md');
+    if(isNew) note.createdAt=Date.now();
+    else note.createdAt=(prev&&prev.createdAt)||Date.now();
+    var idx=-1;
+    for(var i=0;i<notes.length;i++) if(notes[i].id===note.id){ idx=i; break; }
+    if(idx>=0) notes[idx]=note; else notes.push(note);
+    setLS(LS_NOTES,notes);
+    currentNoteId=note.id;
+    unsavedChanges=false;
+    renderNoteList(); renderCards();
+    autoBackup();
+    return note;
+  }
+  var TPL_ORDER={ lit:0, exp:1, pit:2 };
+  function noteTypeClass(id){
+    if(id==='lit') return 'ft-lit';
+    if(id==='exp') return 'ft-exp';
+    if(id==='pit') return 'ft-pit';
+    return '';
+  }
+  // 提取笔记的标签文本（用于搜索：标题 + 标签）
+  function noteTags(n){
+    var tpl=findTpl(n.templateId);
+    var f=n.fields||{};
+    var tags='';
+    if(tpl && tpl.fields){
+      tpl.fields.forEach(function(fd){
+        if(fd.label && fd.label.indexOf('标签')>=0){
+          var v=f[fd.id];
+          if(typeof v==='string' && v.trim()) tags+=v.trim()+' ';
+        }
+      });
+    }
+    return tags;
+  }
+  function renderNoteList(){
+    var ul=document.getElementById('note-list');
+    var kw=searchKw.trim().toLowerCase();
+    var list=notes.slice();
+    // 同类排在一起（文献→经验→踩坑→自定义），同类内按更新时间倒序
+    list.sort(function(a,b){
+      var oa=(TPL_ORDER[a.templateId]!==undefined)?TPL_ORDER[a.templateId]:99;
+      var ob=(TPL_ORDER[b.templateId]!==undefined)?TPL_ORDER[b.templateId]:99;
+      if(oa!==ob) return oa-ob;
+      return (b.updatedAt||0)-(a.updatedAt||0);
+    });
+    if(kw){ list=list.filter(function(n){ return ((n.title||'')+' '+noteTags(n)).toLowerCase().indexOf(kw)>=0; }); }
+    ul.innerHTML='';
+    if(!list.length){ ul.innerHTML='<li style="padding:26px 16px;text-align:center;color:var(--muted);font-size:13px">'+(kw?'没有匹配「'+escapeHtml(searchKw)+'」的笔记':'还没有笔记，点右上角 + 新建一篇')+'</li>'; return; }
+    list.forEach(function(n){
+      var li=document.createElement('li');
+      li.className='note-item'+(n.id===currentNoteId?' active':'');
+      var del=document.createElement('button');
+      del.className='file-del'; del.innerHTML='×'; del.title='删除';
+      del.addEventListener('click',function(e){ e.stopPropagation(); deleteNote(n.id); });
+      li.innerHTML='<span class="file-type '+noteTypeClass(n.templateId)+'">'+escapeHtml(tplName(n.templateId))+'</span><span class="file-title">'+escapeHtml(n.title)+'</span>';
+      li.insertBefore(del,li.firstChild);
+      li.addEventListener('click',function(){ loadNote(n.id); });
+      ul.appendChild(li);
+    });
+  }
+  function loadNote(id){
+    var n=null; for(var i=0;i<notes.length;i++) if(notes[i].id===id) n=notes[i];
+    if(!n) return;
+    currentNoteId=n.id; currentTplId=n.templateId; drafts[n.templateId]=n.fields;
+    editingFieldId=null;
+    unsavedChanges=false;
+    loadRichFromNote();
+    renderTplTabs(); renderForm(); renderMarkdown(); renderNoteList();
+    toast('已打开：'+n.title);
+  }
+  function deleteNote(id){
+    showConfirm('确定删除这篇笔记吗？', function(){
+      var n=null; for(var i=0;i<notes.length;i++) if(notes[i].id===id) n=notes[i];
+      notes=notes.filter(function(n){ return n.id!==id; });
+      setLS(LS_NOTES,notes);
+      if(currentNoteId===id){ currentNoteId=null; clearForm(); renderMarkdown(); }
+      renderNoteList(); renderCards(); toast('已删除');
+      autoBackup();
+      // 同步删除本地 Obsidian 文件夹里的 .md（若设过保存文件夹）
+      if(n){ removeFileFromDir(n.localFileName || (safeName(n.title)+'.md'), noteCatDir(n.templateId)); }
+    });
+  }
+  function newNote(){
+    saveDraft();
+    currentNoteId=null;
+    editingFieldId=null;
+    delete drafts[currentTplId];
+    unsavedChanges=false;
+    loadRichFromNote();
+    renderTplTabs(); renderForm(); clearForm(); renderMarkdown(); renderNoteList();
+    toast('已新建，开始填写吧');
+  }
+  function download(quiet){
+    if(!currentMarkdown){ toast('内容为空，无法导出'); return; }
+    var blob=new Blob([currentMarkdown],{type:'text/markdown;charset=utf-8'});
+    var url=URL.createObjectURL(blob); var a=document.createElement('a');
+    a.href=url; a.download=currentFile+'.md'; document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    if(!quiet) toast('已下载 '+a.download);
+  }
+  function saveAndExport(){
+    var note=saveNote(); if(!note) return;
+    var subdir=noteCatDir(note.templateId);
+    var newName=safeName(note.title)+'.md';
+    var oldName=note.localFileName||'';
+    var dispPath=(subdir?subdir+'/':'')+newName;
+    if(!saveDirPath){ toast('已保存'); return; }
+    if(oldName && oldName!==newName){
+      // 改名：写新文件 + 删旧文件 + 更新记住的文件名
+      writeFileToDir(newName,currentMarkdown,subdir).then(function(){
+        note.localFileName=newName;
+        for(var i=0;i<notes.length;i++) if(notes[i].id===note.id){ notes[i].localFileName=newName; break; }
+        setLS(LS_NOTES,notes);
+        removeFileFromDir(oldName,subdir);
+        toast('已保存到 '+dirName+'：'+dispPath);
+      }).catch(function(){ toast('已保存（写入文件夹失败，仅存本机）'); });
+    } else {
+      writeFileToDir(newName,currentMarkdown,subdir).then(function(){ toast('已保存到 '+dirName+'：'+dispPath); })
+        .catch(function(){ toast('已保存（写入文件夹失败，仅存本机）'); });
+    }
+  }
+
+  // ---- 自定义保存文件夹（File System Access API，需 localhost/https 安全上下文）----
+  function openIDB(){
+    return new Promise(function(res,rej){
+      var r=indexedDB.open('kb_workspace',1);
+      r.onupgradeneeded=function(){ if(!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv'); };
+      r.onsuccess=function(){ res(r.result); };
+      r.onerror=function(){ rej(r.error); };
+    });
+  }
+  function idbPut(key,val){ return openIDB().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction('kv','readwrite'); tx.objectStore('kv').put(val,key); tx.oncomplete=function(){res();}; tx.onerror=function(){rej(tx.error);}; }); }); }
+  function idbGet(key){ return openIDB().then(function(db){ return new Promise(function(res,rej){ var tx=db.transaction('kv','readonly'); var rq=tx.objectStore('kv').get(key); rq.onsuccess=function(){res(rq.result);}; rq.onerror=function(){rej(rq.error);}; }); }); }
+  function fsaSupported(){ return (typeof window!=='undefined') && (window.kbAPI && typeof window.kbAPI.selectDir==='function'); }
+  function updateSaveDirUI(){
+    var el=document.getElementById('save-dir-current'); if(!el) return;
+    if(saveDirPath){ el.textContent='「'+dirName+'」'; el.style.color='var(--green)'; }
+    else { el.textContent='未设置'; el.style.color='var(--muted)'; }
+  }
+  function initSaveDir(){
+    var saved=getLS('kb_save_dir','');
+    if(saved){ saveDirPath=saved; dirName=saved.split(/[\\/]/).filter(Boolean).pop()||saved; }
+    updateSaveDirUI();
+  }
+  function pickSaveDir(){
+    var mm=document.getElementById('more-menu'); if(mm) mm.classList.remove('open');
+    if(!fsaSupported()){ toast('当前打开方式不支持文件夹直写，请用 KB-Launcher 启动器打开'); return; }
+    window.kbAPI.selectDir().then(function(p){
+      if(!p){ toast('未选择文件夹'); return; }  // 用户取消
+      saveDirPath=p; dirName=p.split(/[\\/]/).filter(Boolean).pop()||p;
+      setLS('kb_save_dir', p);
+      updateSaveDirUI();
+      syncTodoToDir();
+      scanDirForNotes();
+      toast('已设置保存文件夹：'+dirName);
+    }).catch(function(err){ toast('选择失败：'+((err&&err.message)||err)); });
+  }
+  // 分类子目录：文献笔记 / 经验 / 踩坑 / 项目进度
+  function noteCatDir(tplId){
+    if(tplId==='lit') return '文献笔记';
+    if(tplId==='exp') return '经验';
+    if(tplId==='pit') return '踩坑';
+    return '';
+  }
+  function writeFileToDir(filename,content,subdir){
+    if(!saveDirPath) return Promise.reject(new Error('未设置保存文件夹'));
+    return window.kbAPI.writeFile({ dir:saveDirPath, subdir:subdir||'', filename:filename, content:content });
+  }
+  function removeFileFromDir(filename,subdir){
+    if(!saveDirPath) return Promise.resolve();
+    return window.kbAPI.removeFile({ dir:saveDirPath, subdir:subdir||'', filename:filename });
+  }
+
+  // ---- 知识卡片 ----
+  var cardsSearchKw='';
+  var cardsExpand={ exp:false, pit:false };
+  var CARD_FOLD_LIMIT=4;
+  var cardTypeFilter='all';
+  function renderCardGroup(type, list, kw){
+    var expanded=cardsExpand[type]||!!kw;   // 搜索时强制展开
+    var total=list.length;
+    var show=list;
+    if(!expanded && total>CARD_FOLD_LIMIT){ show=list.slice(0, CARD_FOLD_LIMIT); }
+    var label=type==='exp'?'经验':'踩坑';
+    var html='<div class="card-group">'
+      +'<div class="card-group-head">'
+      +'<span class="card-group-title"><span class="dot '+type+'"></span>'+label+'</span>'
+      +'<span class="card-group-count">'+total+' 张</span>';
+    if(!kw && total>CARD_FOLD_LIMIT){
+      html+='<button class="btn btn-sm btn-ghost" data-fold-toggle="'+type+'">'+(expanded?'收起':'展开全部（共 '+total+' 张）')+'</button>';
+    }
+    html+='</div><div class="cards-grid">';
+    show.forEach(function(n){
+      var summary=cardSummary(n);
+      html+='<div class="kcard type-'+type+'">'
+        +'<div class="kcard-top"><span class="kcard-badge '+type+'">'+label+'</span>'
+        +'<span class="kcard-meta">'+escapeHtml(fmtDate(dateOnly(n.updatedAt||n.createdAt)))+'</span></div>'
+        +'<div class="kcard-title kcard-click" data-note-view="'+n.id+'">'+escapeHtml(n.title)+'</div>'
+        +(summary?'<div class="kcard-summary kcard-click" data-note-view="'+n.id+'">'+escapeHtml(summary)+'</div>':'')
+        +'<div class="kcard-actions">'
+        +'<button class="btn btn-primary" data-push="'+n.id+'">'+icon('shared',15)+' 存入共享库</button>'
+        +'<button class="btn" data-edit="'+n.id+'">'+icon('edit',15)+' 编辑</button>'
+        +'</div></div>';
+    });
+    html+='</div></div>';
+    return html;
+  }
+  function renderCards(){
+    var grid=document.getElementById('cards-grid');
+    var list=notes.filter(function(n){ return CARD_TPL_IDS[n.templateId]; });
+    list.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+    var cb=document.getElementById('nav-cards'); cb.textContent=list.length; cb.classList.toggle('zero',list.length===0);
+    var kw=cardsSearchKw.trim().toLowerCase();
+    if(kw){ list=list.filter(function(n){ return ((n.title||'')+' '+noteTags(n)).toLowerCase().indexOf(kw)>=0; }); }
+    if(!list.length){
+      grid.innerHTML='<div class="cards-empty"><span class="em">💡</span>'+(kw?'没有匹配「'+escapeHtml(cardsSearchKw.trim())+'」的卡片':'还没有知识卡片。去「知识笔记」写一篇<b>经验</b>或<b>踩坑</b>，会自动出现在这里。')+'</div>';
+      return;
+    }
+    var expList=list.filter(function(n){ return n.templateId==='exp'; });
+    var pitList=list.filter(function(n){ return n.templateId==='pit'; });
+    var html='';
+    if(cardTypeFilter!=='pit' && expList.length){ html+=renderCardGroup('exp', expList, kw); }
+    if(cardTypeFilter!=='exp' && pitList.length){ html+=renderCardGroup('pit', pitList, kw); }
+    if(!html){ grid.innerHTML='<div class="cards-empty"><span class="em">💡</span>当前分类下没有卡片。</div>'; return; }
+    grid.innerHTML=html;
+    grid.querySelectorAll('[data-fold-toggle]').forEach(function(b){
+      b.addEventListener('click',function(){
+        var type=b.getAttribute('data-fold-toggle');
+        cardsExpand[type]=!cardsExpand[type];
+        renderCards();
+      });
+    });
+    grid.querySelectorAll('[data-push]').forEach(function(b){
+      b.addEventListener('click',function(){
+        var n=null; for(var i=0;i<notes.length;i++) if(notes[i].id===b.getAttribute('data-push')) n=notes[i];
+        if(n) pushToShared(n);
+      });
+    });
+    grid.querySelectorAll('[data-edit]').forEach(function(b){
+      b.addEventListener('click',function(){
+        var id=b.getAttribute('data-edit');
+        var n=null; for(var i=0;i<notes.length;i++) if(notes[i].id===id) n=notes[i];
+        if(n){ currentTplId=n.templateId; switchView('note'); loadNote(id); }
+      });
+    });
+    grid.querySelectorAll('[data-note-view]').forEach(function(el){
+      el.addEventListener('click',function(){ openNoteCardDetail(el.getAttribute('data-note-view')); });
+    });
+  }
+  function cardSummary(n){
+    var tpl=findTpl(n.templateId); if(!tpl) return '';
+    var f=n.fields||{};
+    var prio=['exp_steps','pit_phenomenon','pit_fix','exp_result','exp_why','pit_cause'];
+    for(var i=0;i<prio.length;i++){
+      var v=f[prio[i]];
+      if(typeof v==='string' && v.trim()) return v.trim().slice(0,70);
+      if(Array.isArray(v)){
+        for(var j=0;j<v.length;j++){
+          var t=(v[j]&&v[j].text)?String(v[j].text).trim():'';
+          if(t) return t.slice(0,70);
+        }
+      }
+    }
+    for(var k in f){ if(typeof f[k]==='string' && f[k].trim()) return f[k].trim().slice(0,70); }
+    return '';
+  }
+
+  // ---- 模板内联编辑（无需弹窗，直接在写内容时改）----
+  var TYPE_OPTIONS=[{value:'title',label:'标题'},{value:'text',label:'单行（元信息）'},{value:'short',label:'短文本（小节）'},{value:'textarea',label:'长文本（小节）'},{value:'rich',label:'图文（文字+图片）'},{value:'entries',label:'图文条目（多条）'}];
+  function newTemplateInline(){
+    saveDraft();
+    var nid='t'+Date.now();
+    templates.push({ id:nid, name:'新模板', hint:'', fields:[{id:fid(),label:'标题',type:'title'}] });
+    currentTplId=nid; currentNoteId=null;
+    loadRichFromNote();
+    setLS(LS_TEMPLATES,templates);
+    renderTplTabs(); renderForm(); renderMarkdown();
+  }
+  function deleteTemplate(){
+    if(templates.length<=1){ toast('至少保留一个模板'); return; }
+    var cur=currentTemplate();
+    showConfirm('确定删除当前模板「'+(cur?cur.name:'')+'」？\n该模板下的笔记会保留在左侧笔记列表，不会被删除。', function(){
+      templates=templates.filter(function(t){ return t.id!==currentTplId; });
+      currentTplId=templates[0].id; currentNoteId=null;
+      loadRichFromNote();
+      setLS(LS_TEMPLATES,templates);
+      renderTplTabs(); renderForm(); renderMarkdown();
+    });
+  }
+  function addFieldInline(){
+    var ti=currentTplIndex(); if(ti<0) return;
+    var hasTitle=templates[ti].fields.some(function(f){ return f.type==='title'; });
+    templates[ti].fields.push({ id:fid(), label:'新字段', type: hasTitle?'textarea':'title' });
+    setLS(LS_TEMPLATES,templates); renderForm(); renderMarkdown();
+  }
+  var confirmCallback=null;
+  function showConfirm(msg, onOk){
+    document.getElementById('confirm-msg').textContent=msg;
+    confirmCallback=onOk;
+    document.getElementById('confirm-mask').classList.add('open');
+  }
+  function closeConfirm(){
+    document.getElementById('confirm-mask').classList.remove('open');
+    confirmCallback=null;
+  }
+  function resetTemplateInline(){
+    var t=currentTemplate(); if(!t) return;
+    var def=findDefaultById(t.id);
+    if(!def){ toast('该模板无默认结构，无法重置'); return; }
+    showConfirm('确定把当前模板「'+t.name+'」恢复为默认字段？\n（你手动添加的自定义字段会被移除，已填的笔记内容不受影响）', function(){
+      var draft={}; var cur=drafts[t.id];
+      def.fields.forEach(function(f){ if(cur && cur[f.id]) draft[f.id]=cur[f.id]; });
+      for(var i=0;i<templates.length;i++) if(templates[i].id===t.id){ templates[i].fields=JSON.parse(JSON.stringify(def.fields)); break; }
+      drafts[t.id]=draft;
+      setLS(LS_TEMPLATES,templates);
+      renderTplTabs(); renderForm(); renderMarkdown();
+      toast('已恢复默认模板字段');
+    });
+  }
+
+  // ---- 备份 / 导入 / 清空 ----
+  function exportJSON(){
+    var payload={ exportedAt:new Date().toISOString(), templates:templates, notes:notes, tasks:tasks, projects:projects };
+    var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob); var a=document.createElement('a');
+    a.href=url; a.download='知识库备份_'+todayStr()+'.json'; document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    toast('已导出备份');
+  }
+  function importJSON(file){
+    var reader=new FileReader();
+    reader.onload=function(e){
+      try{
+        var data=JSON.parse(e.target.result);
+        var mTemplates=data.templates||templates;
+        var mNotes=data.notes||[];
+        var mTasks=data.tasks||[];
+        var mProjects=data.projects||[];
+        if(!Array.isArray(mNotes)) mNotes=[];
+        if(!Array.isArray(mTasks)) mTasks=[];
+        if(!Array.isArray(mProjects)) mProjects=[];
+        var map={}; notes.forEach(function(n){ map[n.id]=n; });
+        mNotes.forEach(function(n){ var old=map[n.id]; if(!old||(n.updatedAt||0)>=(old.updatedAt||0)) map[n.id]=n; });
+        var nArr=[]; for(var k in map) nArr.push(map[k]);
+        nArr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+        var pmap={}; projects.forEach(function(p){ pmap[p.id]=p; });
+        mProjects.forEach(function(p){ var old=pmap[p.id]; if(!old||(p.updatedAt||0)>=(old.updatedAt||0)) pmap[p.id]=p; });
+        var pArr=[]; for(var k2 in pmap) pArr.push(pmap[k2]);
+        pArr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+        templates=mTemplates; notes=nArr; tasks=mTasks; projects=pArr;
+        setLS(LS_TEMPLATES,templates); setLS(LS_NOTES,notes); setLS(LS_TASKS,tasks); setLS(LS_PROJECTS,projects);
+        curProject=null; curProjectId=null;
+        currentTplId=templates[0]?templates[0].id:null;
+        renderAll(); toast('导入成功，共 '+notes.length+' 篇笔记、'+projects.length+' 个项目');
+      }catch(err){ toast('导入失败：文件格式不对'); }
+    };
+    reader.readAsText(file);
+  }
+  // ---- 自动备份到保存文件夹 + 设定文件夹时自动恢复（替代手动导入导出 JSON）----
+  var backupTimer=null;
+  function autoBackup(){
+    if(!saveDirPath || !window.kbAPI || !window.kbAPI.writeFile) return;
+    if(backupTimer) clearTimeout(backupTimer);
+    backupTimer=setTimeout(function(){
+      backupTimer=null;
+      if(!saveDirPath) return;
+      var payload={ exportedAt:new Date().toISOString(), templates:templates, notes:notes, tasks:tasks, projects:projects };
+      window.kbAPI.writeFile({ dir:saveDirPath, filename:'_kb_backup.json', content:JSON.stringify(payload) }).catch(function(){});
+    }, 800);
+  }
+  function restoreFromDir(){
+    if(!saveDirPath || !window.kbAPI || !window.kbAPI.readFile) return;
+    window.kbAPI.readFile({ dir:saveDirPath, filename:'_kb_backup.json' }).then(function(data){
+      if(!data) return;   // 文件夹里没有备份
+      try{
+        var d=JSON.parse(data);
+        var mTemplates=d.templates||templates;
+        var mNotes=Array.isArray(d.notes)?d.notes:[];
+        var mTasks=Array.isArray(d.tasks)?d.tasks:[];
+        var mProjects=Array.isArray(d.projects)?d.projects:[];
+        var hasLocal=notes.length>0||projects.length>0||tasks.length>0;
+        var doRestore=function(){
+          var map={}; notes.forEach(function(n){ map[n.id]=n; });
+          mNotes.forEach(function(n){ var old=map[n.id]; if(!old||(n.updatedAt||0)>=(old.updatedAt||0)) map[n.id]=n; });
+          var nArr=[]; for(var k in map) nArr.push(map[k]);
+          nArr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+          var pmap={}; projects.forEach(function(p){ pmap[p.id]=p; });
+          mProjects.forEach(function(p){ var old=pmap[p.id]; if(!old||(p.updatedAt||0)>=(old.updatedAt||0)) pmap[p.id]=p; });
+          var pArr=[]; for(var k2 in pmap) pArr.push(pmap[k2]);
+          pArr.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+          templates=mTemplates; notes=nArr; tasks=mTasks; projects=pArr;
+          setLS(LS_TEMPLATES,templates); setLS(LS_NOTES,notes); setLS(LS_TASKS,tasks); setLS(LS_PROJECTS,projects);
+          curProject=null; curProjectId=null;
+          currentTplId=templates[0]?templates[0].id:null;
+          renderAll();
+          toast('已从文件夹恢复数据：'+notes.length+' 篇笔记、'+projects.length+' 个项目');
+        };
+        if(hasLocal && mNotes.length){
+          showConfirm('检测到保存文件夹里有数据备份（'+mNotes.length+' 篇笔记）。是否恢复并与当前数据合并？', doRestore);
+        } else {
+          doRestore();
+        }
+      }catch(err){ /* 备份文件损坏，静默忽略 */ }
+    }).catch(function(){});
+  }
+  // ---- 自动读取文件夹里的 .md 笔记（设定文件夹后扫描解析加载）----
+  function findFieldByLabel(tpl, label){
+    if(!tpl||!tpl.fields) return null;
+    for(var i=0;i<tpl.fields.length;i++){ if(tpl.fields[i].label===label) return tpl.fields[i]; }
+    return null;
+  }
+  function parseMarkdownToNote(md, tplId){
+    var tpl=findTpl(tplId); if(!tpl) return null;
+    var lines=String(md||'').replace(/\r\n?/g,'\n').split('\n');
+    var title='', fields={};
+    var curField=null, curEntryIdx=-1;
+    for(var i=0;i<lines.length;i++){
+      var line=lines[i];
+      var h1=line.match(/^#\s+(.*)$/);
+      var h2=line.match(/^##\s+(.*)$/);
+      var h3=line.match(/^###\s+(.*)$/);
+      var img=line.match(/^!\[[^\]]*\]\((data:image\/[^)\s]+)\)$/);
+      var meta=line.match(/^-\s+\*\*(.+?)[：:]\*\*\s*(.*)$/);
+      if(h1 && !title){ title=h1[1].trim(); continue; }
+      if(h2){ curField=findFieldByLabel(tpl, h2[1].trim()); curEntryIdx=-1; continue; }
+      if(h3 && curField && curField.type==='entries'){ curEntryIdx++; continue; }
+      if(img && curField){
+        var src=img[1];
+        if(curField.type==='entries'){
+          var el=parseEntries(fields[curField.id]);
+          if(curEntryIdx<0) curEntryIdx=0;
+          while(el.length<=curEntryIdx) el.push({text:'',images:[]});
+          el[curEntryIdx].images=(el[curEntryIdx].images||[]).concat([src]);
+          fields[curField.id]=el;
+        } else if(curField.type==='rich'){
+          var r=parseRich(fields[curField.id]);
+          r.images=(r.images||[]).concat([src]);
+          fields[curField.id]=r;
+        }
+        continue;
+      }
+      if(meta && !curField){
+        var mf=findFieldByLabel(tpl, meta[1].trim());
+        if(mf) fields[mf.id]=meta[2].trim();
+        continue;
+      }
+      if(!line.trim()) continue;
+      if(curField){
+        if(curField.type==='entries'){
+          var el2=parseEntries(fields[curField.id]);
+          if(curEntryIdx<0) curEntryIdx=0;
+          while(el2.length<=curEntryIdx) el2.push({text:'',images:[]});
+          el2[curEntryIdx].text=(el2[curEntryIdx].text?el2[curEntryIdx].text+'\n':'')+line;
+          fields[curField.id]=el2;
+        } else if(curField.type==='rich'){
+          var r2=parseRich(fields[curField.id]);
+          r2.text=(r2.text?r2.text+'\n':'')+line;
+          fields[curField.id]=r2;
+        } else if(curField.type==='short'||curField.type==='textarea'){
+          fields[curField.id]=(fields[curField.id]?fields[curField.id]+'\n':'')+line;
+        }
+      }
+    }
+    if(!title) title='（未命名）';
+    return { title:title, fields:fields };
+  }
+  function scanDirForNotes(){
+    if(!saveDirPath || !window.kbAPI || !window.kbAPI.listMd) return;
+    window.kbAPI.listMd({ dir:saveDirPath }).then(function(files){
+      if(!files || !files.length) return;
+      var catMap={ '文献笔记':'lit', '经验':'exp', '踩坑':'pit' };
+      var mdFiles=files.filter(function(f){
+        var seg=(f.subdir||'').replace(/^[\\/]+/,'').split(/[\\/]/)[0];
+        return catMap[seg];
+      });
+      if(!mdFiles.length) return;
+      var scanned=[], idx=0;
+      function next(){
+        if(idx>=mdFiles.length){ mergeScannedNotes(scanned); return; }
+        var f=mdFiles[idx++];
+        var seg=(f.subdir||'').replace(/^[\\/]+/,'').split(/[\\/]/)[0];
+        var tplId=catMap[seg];
+        window.kbAPI.readFile({ dir:saveDirPath, subdir:f.subdir, filename:f.filename }).then(function(data){
+          if(data){
+            var parsed=parseMarkdownToNote(data, tplId);
+            if(parsed){ parsed.templateId=tplId; scanned.push(parsed); }
+          }
+          next();
+        }).catch(function(){ next(); });
+      }
+      next();
+    }).catch(function(){});
+  }
+  function mergeScannedNotes(scanned){
+    if(!scanned.length) return;
+    var existing={}; notes.forEach(function(n){ existing[(n.title||'').trim()]=true; });
+    var added=[];
+    scanned.forEach(function(s){
+      var t=(s.title||'').trim();
+      if(!t || existing[t]) return;
+      existing[t]=true;
+      notes.push({ id:'n'+Date.now()+Math.random().toString(36).slice(2,6), templateId:s.templateId, title:t, fields:s.fields, createdAt:Date.now(), updatedAt:Date.now() });
+      added.push(t);
+    });
+    if(added.length){
+      setLS(LS_NOTES,notes);
+      renderNoteList(); renderCards();
+      toast('已从文件夹读取 '+added.length+' 篇笔记');
+    }
+  }
+  function clearAll(){
+    showConfirm('确定清空全部数据？此操作不可恢复，建议先「导出 JSON」备份。', function(){
+      showConfirm('再次确认：真的要清空所有笔记和待办吗？', function(){
+        notes=[]; tasks=[]; projects=[]; currentNoteId=null; curProject=null; curProjectId=null;
+        setLS(LS_NOTES,notes); setLS(LS_TASKS,tasks); setLS(LS_PROJECTS,projects);
+        clearForm(); renderMarkdown();
+        renderAll(); toast('已清空');
+      });
+    });
+  }
+
+  // ---- 项目进度 ----
+  var pendingUpload=null;  // { pf:'prog'|'disc', idx }
+  // ---- 项目进度模板化字段（与知识笔记模板一致：可改名/排序/删除/添加/切换类型）----
+  var LS_PROJECT_FIELDS='kb_project_fields_v1';   // 旧版自定义字段 key（一次性迁移用）
+  var LS_PROJECT_TPL='kb_project_tpl_v1';         // 项目模板：完整字段列表
+  // type：text(单行)/textarea(多行) 为自定义字段；direction/refs/progress/discussions/links/pdfs 为内置区块
+  var PROJECT_TYPE_OPTIONS=[
+    {value:'text',label:'单行文本'},{value:'textarea',label:'多行文本'},
+    {value:'direction',label:'初步方向'},{value:'refs',label:'文献清单'},
+    {value:'progress',label:'进展记录'},{value:'discussions',label:'讨论记录'},
+    {value:'links',label:'相关链接'},{value:'pdfs',label:'PDF 附件'}
+  ];
+  function defaultProjectTemplate(){
+    return [
+      {id:'direction',label:'初步方向',type:'direction'},
+      {id:'refs',label:'文献清单',type:'refs'},
+      {id:'progress',label:'进展记录',type:'progress'},
+      {id:'discussions',label:'讨论记录',type:'discussions'},
+      {id:'links',label:'相关链接',type:'links'},
+      {id:'pdfs',label:'相关 PDF 附件',type:'pdfs'}
+    ];
+  }
+  function defaultProjectLabel(type){
+    for(var i=0;i<PROJECT_TYPE_OPTIONS.length;i++) if(PROJECT_TYPE_OPTIONS[i].value===type) return PROJECT_TYPE_OPTIONS[i].label;
+    return '新字段';
+  }
+  var projectTemplate=[];
+  var editingTplId=null;
+  function saveProjectTpl(){ setLS(LS_PROJECT_TPL, projectTemplate); }
+  function loadProjectTpl(){
+    var t=getLS(LS_PROJECT_TPL,null);
+    if(Array.isArray(t)&&t.length){ projectTemplate=t; return; }
+    // 迁移：旧版「自定义字段」只存了 text/textarea 字段，追加到默认模板尾部
+    projectTemplate=defaultProjectTemplate();
+    var custom=getLS(LS_PROJECT_FIELDS,null);
+    if(Array.isArray(custom)){
+      custom.forEach(function(c){
+        if(c&&c.id&&c.label) projectTemplate.push({ id:c.id, label:c.label, type:(c.type==='textarea'?'textarea':'text') });
+      });
+    }
+    saveProjectTpl();
+  }
+  function addProjectField(type){
+    type=type||'text';
+    if(type!=='text'&&type!=='textarea'){
+      for(var i=0;i<projectTemplate.length;i++) if(projectTemplate[i].id===type){ editingTplId=type; toast('该区块已存在，已为你选中'); renderProjectForm(); return; }
+    }
+    var f={ id:(type==='text'||type==='textarea')?('cf'+Date.now()+Math.random().toString(36).slice(2,6)):type, label:defaultProjectLabel(type), type:type };
+    projectTemplate.push(f);
+    editingTplId=f.id;
+    saveProjectTpl(); renderProjectForm();
+  }
+  function moveProjectField(fid, dir){
+    var i=-1; for(var k=0;k<projectTemplate.length;k++) if(projectTemplate[k].id===fid){ i=k; break; }
+    var j=i+dir; if(i<0||j<0||j>=projectTemplate.length) return;
+    var t=projectTemplate[i]; projectTemplate[i]=projectTemplate[j]; projectTemplate[j]=t;
+    saveProjectTpl(); renderProjectForm();
+  }
+  function deleteProjectField(fid){
+    projectTemplate=projectTemplate.filter(function(f){ return f.id!==fid; });
+    if(editingTplId===fid) editingTplId=null;
+    saveProjectTpl(); renderProjectForm();
+  }
+  function resetProjectFields(){
+    showConfirm('确定把项目进度恢复为默认模板吗？\n（你添加的字段会被移除，已填写的内容不会丢失）', function(){
+      projectTemplate=defaultProjectTemplate(); editingTplId=null;
+      saveProjectTpl(); renderProjectForm();
+      toast('已恢复默认模板');
+    });
+  }
+  function newProjectObj(){ return { id:'p'+Date.now(), direction:'', refs:[], progress:[], discussions:[], links:'', pdfs:[], custom:{}, createdAt:Date.now(), updatedAt:Date.now() }; }
+  function findProject(id){ for(var i=0;i<projects.length;i++) if(projects[i].id===id) return projects[i]; return null; }
+  function projectLabel(p){
+    var d=(p.direction||'').trim();
+    return d?d:'未命名项目（'+fmtDate(dateOnly(p.createdAt||Date.now()))+'）';
+  }
+  function renderEntryImgs(imgs, pf, idx){
+    if(!imgs||!imgs.length) return '';
+    return imgs.map(function(src,i){
+      return '<div class="rich-img"><img data-src="'+src+'" alt="图'+(i+1)+'" decoding="async" loading="lazy"><button class="ri-del" type="button" data-act="p-img-del" data-pf="'+pf+'" data-idx="'+idx+'" data-img-idx="'+i+'" title="删除">×</button></div>';
+    }).join('');
+  }
+  function renderProjectList(){
+    var ul=document.getElementById('project-list'); if(!ul) return;
+    var list=projects.slice().sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+    ul.innerHTML='';
+    if(!list.length){ ul.innerHTML='<li style="padding:26px 16px;text-align:center;color:var(--muted);font-size:13px">还没有项目，点 + 新建一个</li>'; return; }
+    list.forEach(function(p){
+      var li=document.createElement('li');
+      li.className='note-item'+(p.id===curProjectId?' active':'');
+      var del=document.createElement('button');
+      del.className='file-del'; del.innerHTML='×'; del.title='删除';
+      del.addEventListener('click',function(e){ e.stopPropagation(); deleteProject(p.id); });
+      li.innerHTML='<span class="file-title">'+escapeHtml(projectLabel(p))+'</span>';
+      li.insertBefore(del,li.firstChild);
+      li.addEventListener('click',function(){ loadProject(p.id); });
+      ul.appendChild(li);
+    });
+  }
+  function pTplHead(f, editing){
+    var isSec=(f.type==='refs'||f.type==='progress'||f.type==='discussions');
+    var ic='<span class="lbl-edit-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/></svg></span>';
+    return '<label class="'+(isSec?'p-section-title ':'')+'p-tpl-label" data-act="p-edit-tpl" data-tpl="'+f.id+'"><span class="lbl-text">'+escapeHtml(f.label)+'</span>'+ic+'</label>';
+  }
+  function pTplEdit(f){
+    var opts=PROJECT_TYPE_OPTIONS.map(function(t){ return '<option value="'+t.value+'"'+(f.type===t.value?' selected':'')+'>'+t.label+'</option>'; }).join('');
+    return '<div class="field-edit">'
+      +'<input class="fe-name" data-tpl-name="'+f.id+'" value="'+escapeHtml(f.label)+'" placeholder="字段名">'
+      +'<select class="fe-type" data-tpl-type="'+f.id+'">'+opts+'</select>'
+      +'<button class="icon-btn-sm" data-act="p-tpl-up" data-tpl="'+f.id+'" title="上移">↑</button>'
+      +'<button class="icon-btn-sm" data-act="p-tpl-down" data-tpl="'+f.id+'" title="下移">↓</button>'
+      +'<button class="icon-btn-sm danger" data-act="p-tpl-del" data-tpl="'+f.id+'" title="删除字段">×</button>'
+      +'<button class="btn btn-sm btn-primary" data-act="p-tpl-done" data-tpl="'+f.id+'">完成</button>'
+      +'</div>';
+  }
+  function renderProjectForm(){
+    var box=document.getElementById('project-form'); if(!box) return;
+    if(!curProject){ box.innerHTML='<div class="p-empty"><span class="em">📁</span>选择左侧项目，或点 + 新建一个项目开始记录进度</div>'; return; }
+    var p=curProject;
+    var html='<div class="p-form-head"><h3>'+icon('projects',18)+' 项目进度</h3>'
+      +'<button class="btn btn-primary" data-act="p-save">保存</button></div>';
+    projectTemplate.forEach(function(f){
+      var editing=editingTplId===f.id;
+      var head=pTplHead(f,editing);
+      if(f.type==='direction'){
+        html+='<div class="p-field">'+head+(editing?pTplEdit(f):'')+'<input data-pf="direction" placeholder="例如：改进 XX 方法的收敛性" value="'+escapeHtml(p.direction||'')+'"></div>';
+      }
+      else if(f.type==='links'){
+        html+='<div class="p-field">'+head+(editing?pTplEdit(f):'')+'<input data-pf="links" placeholder="代码仓库 / 文档 / 数据链接" value="'+escapeHtml(p.links||'')+'"></div>';
+      }
+      else if(f.type==='text'||f.type==='textarea'){
+        var val=(p.custom&&p.custom[f.id])||'';
+        html+='<div class="p-field">'+head+(editing?pTplEdit(f):'')
+          +(f.type==='textarea'
+            ?'<textarea data-cf="'+f.id+'" placeholder="'+escapeHtml(f.label)+'">'+escapeHtml(val)+'</textarea>'
+            :'<input data-cf="'+f.id+'" placeholder="'+escapeHtml(f.label)+'" value="'+escapeHtml(val)+'">')+'</div>';
+      }
+      else if(f.type==='refs'){
+        html+='<div class="p-section">'+head+(editing?pTplEdit(f):'')+'<div id="p-refs">';
+        (p.refs||[]).forEach(function(r,i){
+          html+='<div class="ref-item" data-ref-idx="'+i+'">'
+            +'<div class="ref-item-head">'
+            +'<input data-pf="ref" data-idx="'+i+'" data-sub="title" placeholder="文献标题" value="'+escapeHtml(r.title||'')+'">'
+            +'<input class="ref-year" data-pf="ref" data-idx="'+i+'" data-sub="year" placeholder="年份" value="'+escapeHtml(r.year||'')+'">'
+            +'<button class="p-del-btn" data-act="p-del-ref" data-idx="'+i+'" title="删除文献">×</button>'
+            +'</div>'
+            +'<textarea data-pf="ref" data-idx="'+i+'" data-sub="note" placeholder="可借鉴的信息 / 关键结论">'+escapeHtml(r.note||'')+'</textarea>'
+            +'</div>';
+        });
+        html+='</div><div class="p-add-row"><button class="btn btn-sm btn-ghost" data-act="p-add-ref">+ 添加文献</button></div></div>';
+      }
+      else if(f.type==='progress'){
+        html+='<div class="p-section">'+head+(editing?pTplEdit(f):'')+'<div id="p-progress">';
+        (p.progress||[]).forEach(function(e,i){
+          var isProg=e.type!=='plan';
+          html+='<div class="p-entry" data-prog-idx="'+i+'">'
+            +'<div class="p-entry-head">'
+            +'<button class="p-type-toggle" data-act="p-toggle-prog" data-idx="'+i+'">'+(isProg?'▶ 进展':'▷ 计划')+'</button>'
+            +'<span class="spacer"></span>'
+            +'<button class="btn btn-sm btn-ghost" data-act="p-upload" data-pf="prog" data-idx="'+i+'">'+icon('upload',15)+' 上传图片</button>'
+            +'<button class="p-del-btn" data-act="p-del-prog" data-idx="'+i+'" title="删除">×</button>'
+            +'</div>'
+            +(e.images&&e.images.length?'<div class="p-entry-imgs top" id="p-prog-imgs-'+i+'">'+renderEntryImgs(e.images,'prog',i)+'</div>':'')
+            +'<textarea data-pf="prog" data-idx="'+i+'" placeholder="这一阶段的进展 / 计划…">'+escapeHtml(e.text||'')+'</textarea>'
+            +'</div>';
+        });
+        html+='</div><div class="p-add-row"><button class="btn btn-sm btn-ghost" data-act="p-add-progress">+ 添加进展 / 计划</button></div></div>';
+      }
+      else if(f.type==='discussions'){
+        html+='<div class="p-section">'+head+(editing?pTplEdit(f):'')+'<div id="p-discussions">';
+        (p.discussions||[]).forEach(function(d,i){
+          html+='<div class="p-entry" data-disc-idx="'+i+'">'
+            +'<div class="p-entry-head">'
+            +'<span class="p-entry-type" style="background:var(--primary-soft);color:var(--primary)">讨论</span>'
+            +'<span class="spacer"></span>'
+            +'<button class="btn btn-sm btn-ghost" data-act="p-upload" data-pf="disc" data-idx="'+i+'">'+icon('upload',15)+' 上传图片</button>'
+            +'<button class="p-del-btn" data-act="p-del-disc" data-idx="'+i+'" title="删除">×</button>'
+            +'</div>'
+            +(d.images&&d.images.length?'<div class="p-entry-imgs top" id="p-disc-imgs-'+i+'">'+renderEntryImgs(d.images,'disc',i)+'</div>':'')
+            +'<textarea data-pf="disc" data-idx="'+i+'" placeholder="与老师讨论的结论、是否通过、反馈方向…">'+escapeHtml(d.text||'')+'</textarea>'
+            +'</div>';
+        });
+        html+='</div><div class="p-add-row"><button class="btn btn-sm btn-ghost" data-act="p-add-disc">+ 添加讨论</button></div></div>';
+      }
+      else if(f.type==='pdfs'){
+        html+='<div class="p-field">'+head+(editing?pTplEdit(f):'');
+        var pdfs=p.pdfs||[];
+        if(pdfs.length){
+          html+='<div class="p-pdf-list">';
+          pdfs.forEach(function(pf,i){
+            html+='<div class="p-pdf-item"><span class="p-pdf-name">'+icon('pdf',16)+' '+escapeHtml(pf.name||('附件'+(i+1)))+'</span>'
+              +'<a class="btn btn-sm btn-ghost" href="'+(pf.dataUrl||'')+'" download="'+escapeHtml(pf.name||'附件')+'">下载</a>'
+              +'<button class="p-del-btn" data-act="p-del-pdf" data-idx="'+i+'" title="删除">×</button>'
+              +'</div>';
+          });
+          html+='</div>';
+        }
+        html+='<button class="btn btn-sm btn-ghost" data-act="p-upload-pdf">'+icon('upload',15)+' 上传 PDF</button></div>';
+      }
+    });
+    var addOpts=PROJECT_TYPE_OPTIONS.map(function(t){ return '<option value="'+t.value+'">'+t.label+'</option>'; }).join('');
+    html+='<div class="p-add-row">'
+      +'<select id="p-add-field-type" class="p-add-type">'+addOpts+'</select>'
+      +'<button class="btn btn-sm btn-ghost" data-act="p-add-field">+ 添加字段</button>'
+      +'<button class="btn btn-sm btn-ghost" data-act="p-reset-fields">↺ 重置默认模板</button>'
+      +'</div>';
+    box.innerHTML=html;
+    if(editingTplId){ var ne=box.querySelector('.fe-name'); if(ne) ne.focus(); }
+    scheduleLazyImages(box);
+  }
+  function getProjectEntry(pf,idx){
+    if(!curProject) return null;
+    if(pf==='prog') return (curProject.progress&&curProject.progress[idx])||null;
+    if(pf==='disc') return (curProject.discussions&&curProject.discussions[idx])||null;
+    return null;
+  }
+  function handleProjectInput(e){
+    var t=e.target; if(!curProject) return;
+    // 模板字段改名（编辑态）
+    var tplName=t.getAttribute('data-tpl-name');
+    if(tplName){
+      for(var a=0;a<projectTemplate.length;a++) if(projectTemplate[a].id===tplName){ projectTemplate[a].label=t.value; break; }
+      saveProjectTpl();
+      var lbl=document.querySelector('[data-tpl="'+tplName+'"] .lbl-text');
+      if(lbl) lbl.textContent=t.value;
+      return;
+    }
+    // 模板字段切换类型（select 触发 input/change）
+    var tplType=t.getAttribute('data-tpl-type');
+    if(tplType){
+      for(var b=0;b<projectTemplate.length;b++) if(projectTemplate[b].id===tplType){ projectTemplate[b].type=t.value; break; }
+      saveProjectTpl(); renderProjectForm();
+      return;
+    }
+    var cf=t.getAttribute('data-cf');
+    if(cf){
+      unsavedChanges=true;
+      if(!curProject.custom) curProject.custom={};
+      curProject.custom[cf]=t.value;
+      return;
+    }
+    var pf=t.getAttribute('data-pf'); if(!pf) return;
+    unsavedChanges=true;
+    var idx=t.getAttribute('data-idx');
+    if(pf==='direction'){ curProject.direction=t.value; }
+    else if(pf==='links'){ curProject.links=t.value; }
+    else if(pf==='ref'&&idx!=null){ var i=parseInt(idx,10), sub=t.getAttribute('data-sub'); if(curProject.refs&&curProject.refs[i]) curProject.refs[i][sub]=t.value; }
+    else if(pf==='prog'&&idx!=null){ var j=parseInt(idx,10); if(curProject.progress&&curProject.progress[j]) curProject.progress[j].text=t.value; }
+    else if(pf==='disc'&&idx!=null){ var k=parseInt(idx,10); if(curProject.discussions&&curProject.discussions[k]) curProject.discussions[k].text=t.value; }
+  }
+  function handleProjectClick(e){
+    var actEl=e.target.closest('[data-act]'); if(!actEl) return;
+    var act=actEl.getAttribute('data-act');
+    if(act==='p-save'){ saveProject(); return; }
+    if(!curProject) return;
+    unsavedChanges=true;
+    var idx=parseInt(actEl.getAttribute('data-idx'),10);
+    if(act==='p-add-field'){ var sel=document.getElementById('p-add-field-type'); addProjectField(sel?sel.value:'text'); return; }
+    if(act==='p-reset-fields'){ resetProjectFields(); return; }
+    if(act==='p-edit-tpl'){ var tid=actEl.getAttribute('data-tpl'); editingTplId=(editingTplId===tid)?null:tid; renderProjectForm(); return; }
+    if(act==='p-tpl-up'){ moveProjectField(actEl.getAttribute('data-tpl'),-1); return; }
+    if(act==='p-tpl-down'){ moveProjectField(actEl.getAttribute('data-tpl'),1); return; }
+    if(act==='p-tpl-del'){ deleteProjectField(actEl.getAttribute('data-tpl')); return; }
+    if(act==='p-tpl-done'){ editingTplId=null; renderProjectForm(); return; }
+    if(act==='p-add-ref'){ curProject.refs=curProject.refs||[]; curProject.refs.push({title:'',year:'',note:''}); renderProjectForm(); return; }
+    if(act==='p-del-ref'){ if(curProject.refs) curProject.refs.splice(idx,1); renderProjectForm(); return; }
+    if(act==='p-add-progress'){ curProject.progress=curProject.progress||[]; curProject.progress.push({type:'prog',text:'',images:[]}); renderProjectForm(); return; }
+    if(act==='p-del-prog'){ if(curProject.progress) curProject.progress.splice(idx,1); renderProjectForm(); return; }
+    if(act==='p-toggle-prog'){ var it=curProject.progress&&curProject.progress[idx]; if(it){ it.type=(it.type==='plan')?'prog':'plan'; renderProjectForm(); } return; }
+    if(act==='p-add-disc'){ curProject.discussions=curProject.discussions||[]; curProject.discussions.push({text:'',images:[]}); renderProjectForm(); return; }
+    if(act==='p-del-disc'){ if(curProject.discussions) curProject.discussions.splice(idx,1); renderProjectForm(); return; }
+    if(act==='p-upload'){
+      pendingUpload={ pf:actEl.getAttribute('data-pf'), idx:idx };
+      var fi=document.getElementById('project-file-input'); if(fi) fi.click();
+      return;
+    }
+    if(act==='p-img-del'){
+      var pf=actEl.getAttribute('data-pf');
+      var imgIdx=parseInt(actEl.getAttribute('data-img-idx'),10);
+      var entry=getProjectEntry(pf,idx);
+      if(entry&&entry.images){ entry.images.splice(imgIdx,1); renderProjectForm(); }
+      return;
+    }
+    if(act==='p-upload-pdf'){ var pi=document.getElementById('project-pdf-input'); if(pi) pi.click(); return; }
+    if(act==='p-del-pdf'){ if(curProject.pdfs) curProject.pdfs.splice(idx,1); renderProjectForm(); return; }
+  }
+  function handleProjectFileChange(e){
+    var fi=e.target;
+    var up=pendingUpload; pendingUpload=null;
+    if(!(fi.files&&fi.files.length)||!up){ fi.value=''; return; }
+    var entry=getProjectEntry(up.pf,up.idx);
+    if(!entry){ fi.value=''; return; }
+    var arr=entry.images||[];
+    var remaining=9-arr.length;
+    if(remaining<=0){ toast('最多上传 9 张图片'); fi.value=''; return; }
+    var list=Array.prototype.slice.call(fi.files,0,remaining);
+    Promise.all(list.map(compressImage)).then(function(urls){
+      entry.images=arr.concat(urls);
+      renderProjectForm();
+      toast('已添加 '+urls.length+' 张图片');
+    }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
+    fi.value='';
+  }
+  function handleProjectPaste(e){
+    if(!curProject) return;
+    var t=e.target;
+    var pf=t.getAttribute('data-pf');
+    if(pf!=='prog' && pf!=='disc') return;   // 仅进展/计划、讨论的输入框支持粘贴图片
+    var idx=t.getAttribute('data-idx');
+    if(idx==null) return;
+    var items=(e.clipboardData&&e.clipboardData.items)||[];
+    var imgItem=null;
+    for(var i=0;i<items.length;i++){ if(items[i].type && items[i].type.indexOf('image/')===0){ imgItem=items[i]; break; } }
+    if(!imgItem) return;   // 剪贴板没有图片，走默认粘贴
+    var file=imgItem.getAsFile();
+    if(!file) return;
+    e.preventDefault();
+    var entry=getProjectEntry(pf, parseInt(idx,10));
+    if(!entry) return;
+    var arr=entry.images||[];
+    if(arr.length>=9){ toast('最多 9 张图片'); return; }
+    compressImage(file).then(function(url){
+      entry.images=arr.concat([url]);
+      unsavedChanges=true;
+      renderProjectForm();
+      toast('已粘贴图片');
+    }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
+  }
+  function handleProjectPdfChange(e){
+    var fi=e.target;
+    var file=fi.files&&fi.files[0];
+    fi.value='';
+    if(!file) return;
+    if(!curProject){ toast('请先选择项目'); return; }
+    if(file.type!=='application/pdf' && !/\.pdf$/i.test(file.name)){ toast('请选择 PDF 文件'); return; }
+    if(file.size>5*1024*1024){ toast('PDF 超过 5MB，暂不支持（本地存储空间有限）'); return; }
+    var reader=new FileReader();
+    reader.onload=function(){
+      curProject.pdfs=curProject.pdfs||[];
+      curProject.pdfs.push({ name:file.name, dataUrl:reader.result });
+      unsavedChanges=true;
+      renderProjectForm();
+      toast('已添加 PDF：'+file.name);
+    };
+    reader.onerror=function(){ toast('读取文件失败'); };
+    reader.readAsDataURL(file);
+  }
+  function handleEntryFileChange(e){
+    var fi=e.target;
+    var up=pendingEntryUpload; pendingEntryUpload=null;
+    if(!(fi.files&&fi.files.length)||!up){ fi.value=''; return; }
+    var ent=(entriesData[up.fid]||[])[up.idx];
+    if(!ent){ fi.value=''; return; }
+    var arr=ent.images||[];
+    var remaining=9-arr.length;
+    if(remaining<=0){ toast('最多上传 9 张图片'); fi.value=''; return; }
+    var list=Array.prototype.slice.call(fi.files,0,remaining);
+    Promise.all(list.map(compressImage)).then(function(urls){
+      ent.images=arr.concat(urls);
+      saveDraft(); renderEntryImagesBox(up.fid, up.idx);
+      toast('已添加 '+urls.length+' 张图片');
+    }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
+    fi.value='';
+  }
+  function projectToMarkdown(p){
+    var md='# '+projectLabel(p)+'\n\n';
+    projectTemplate.forEach(function(f){
+      if(f.type==='direction'&&(p.direction||'').trim()){ md+='## '+f.label+'\n'+p.direction.trim()+'\n\n'; }
+      else if(f.type==='refs'&&p.refs&&p.refs.length){
+        md+='## '+f.label+'\n';
+        p.refs.forEach(function(r,i){
+          var title=(r.title||'').trim()||('文献'+(i+1));
+          md+='- **'+title+'**'+(r.year&&r.year.trim()?'（'+r.year.trim()+'）':'')+'\n';
+          if((r.note||'').trim()) md+='  - 可借鉴的信息：'+r.note.trim()+'\n';
+        });
+        md+='\n';
+      }
+      else if(f.type==='progress'&&p.progress&&p.progress.length){
+        md+='## '+f.label+'\n';
+        p.progress.forEach(function(e){
+          md+='### '+(e.type==='plan'?'计划':'进展')+'\n';
+          (e.images||[]).forEach(function(src,i){ md+='![图'+(i+1)+']('+src+')\n'; });
+          if((e.text||'').trim()) md+=e.text.trim()+'\n';
+          md+='\n';
+        });
+      }
+      else if(f.type==='discussions'&&p.discussions&&p.discussions.length){
+        md+='## '+f.label+'\n';
+        p.discussions.forEach(function(d,i){
+          md+='### 讨论 '+(i+1)+'\n';
+          (d.images||[]).forEach(function(src,j){ md+='![图'+(j+1)+']('+src+')\n'; });
+          if((d.text||'').trim()) md+=d.text.trim()+'\n';
+          md+='\n';
+        });
+      }
+      else if(f.type==='links'&&(p.links||'').trim()){ md+='## '+f.label+'\n'+p.links.trim()+'\n\n'; }
+      // 相关 PDF 附件（仅记录文件名，PDF 本体存本机）
+      else if(f.type==='pdfs'&&p.pdfs&&p.pdfs.length){
+        md+='## '+f.label+'\n';
+        p.pdfs.forEach(function(pf,i){ md+='- '+((pf&&pf.name)||('附件'+(i+1)))+'\n'; });
+        md+='\n';
+      }
+      else if(f.type==='text'||f.type==='textarea'){
+        var v=((p.custom&&p.custom[f.id])||'').toString().trim();
+        if(v) md+='## '+f.label+'\n'+v+'\n\n';
+      }
+    });
+    return md;
+  }
+  function downloadText(filename, content){
+    var blob=new Blob([content],{type:'text/markdown;charset=utf-8'});
+    var url=URL.createObjectURL(blob); var a=document.createElement('a');
+    a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+  function persistProject(){
+    if(!curProject) return;
+    var idx=-1;
+    for(var i=0;i<projects.length;i++) if(projects[i].id===curProject.id){ idx=i; break; }
+    if(idx>=0) projects[idx]=curProject; else projects.push(curProject);
+    setLS(LS_PROJECTS,projects);
+    autoBackup();
+  }
+  function saveProject(){
+    if(!curProject) return;
+    curProject.updatedAt=Date.now();
+    var subdir='项目进度';
+    var newName=safeName((curProject.direction||'').trim()||('项目-'+todayStr()))+'.md';
+    var oldName=curProject.localFileName||'';
+    var dispPath=subdir+'/'+newName;
+    persistProject();
+    unsavedChanges=false;
+    renderProjectList();
+    var md=projectToMarkdown(curProject);
+    if(!saveDirPath){ toast('已保存'); return; }
+    if(oldName && oldName!==newName){
+      // 改名：写新文件 + 删旧文件 + 更新记住的文件名
+      writeFileToDir(newName,md,subdir).then(function(){
+        curProject.localFileName=newName;
+        persistProject();
+        removeFileFromDir(oldName,subdir);
+        toast('已保存到 '+dirName+'：'+dispPath);
+      }).catch(function(){ toast('已保存（写入文件夹失败，仅存本机）'); });
+    } else {
+      curProject.localFileName=newName;
+      persistProject();
+      writeFileToDir(newName,md,subdir).then(function(){ toast('已保存到 '+dirName+'：'+dispPath); })
+        .catch(function(){ toast('已保存（写入文件夹失败，仅存本机）'); });
+    }
+  }
+  function newProject(){
+    persistProject();
+    var p=newProjectObj();
+    projects.push(p);
+    setLS(LS_PROJECTS,projects);
+    curProjectId=p.id; curProject=p;
+    renderProjectList(); renderProjectForm();
+    toast('已新建项目，开始填写吧');
+  }
+  function loadProject(id){
+    persistProject();
+    var p=findProject(id); if(!p) return;
+    curProjectId=id; curProject=p;
+    renderProjectList(); renderProjectForm();
+  }
+  function deleteProject(id){
+    showConfirm('确定删除这个项目吗？', function(){
+      var p=null; for(var i=0;i<projects.length;i++) if(projects[i].id===id) p=projects[i];
+      projects=projects.filter(function(p){ return p.id!==id; });
+      setLS(LS_PROJECTS,projects);
+      if(curProjectId===id){ curProjectId=null; curProject=null; }
+      renderProjectList(); renderProjectForm(); toast('已删除');
+      autoBackup();
+      // 同步删除本地 Obsidian 文件夹里的 .md（若设过保存文件夹）
+      if(p){
+        removeFileFromDir(p.localFileName || (safeName((p.direction||'').trim()||('项目-'+todayStr()))+'.md'), '项目进度');
+      }
+    });
+  }
+  function renderProjects(){ renderProjectList(); renderProjectForm(); }
+
+  function renderAll(){
+    renderTplTabs(); renderForm(); renderMarkdown(); renderNoteList(); renderTodo(); renderCards(); renderProjects();
+  }
+
+  function applyTheme(name){
+    if(name!=='pink') name='blue';
+    document.documentElement.setAttribute('data-theme',name);
+    try{ localStorage.setItem('kb_theme_v1',name); }catch(e){}
+    document.querySelectorAll('.theme-dot').forEach(function(d){ d.classList.toggle('active',d.getAttribute('data-theme-set')===name); });
+  }
+
+  // ---- 初始化 ----
+  function initIcons(){
+    document.getElementById('ic-todo').innerHTML=icon('todo');
+    document.getElementById('ic-note').innerHTML=icon('note');
+    document.getElementById('ic-projects').innerHTML=icon('projects');
+    document.getElementById('ic-cards').innerHTML=icon('cards');
+    document.getElementById('ic-todo2').innerHTML=icon('todo');
+    document.getElementById('ic-cards2').innerHTML=icon('cards');
+    document.getElementById('ic-shared2').innerHTML=icon('shared');
+    document.getElementById('ic-shared-search').innerHTML=icon('search',16);
+    document.getElementById('ic-cards-search').innerHTML=icon('search',16);
+    document.getElementById('ic-preview').innerHTML=icon('file');
+    document.getElementById('ic-search').innerHTML=icon('search',16);
+    document.getElementById('ic-resources').innerHTML=icon('resources');
+    document.getElementById('ic-resources2').innerHTML=icon('resources');
+    document.getElementById('ic-res-shared').innerHTML=icon('pdf');
+    document.getElementById('ic-res-search').innerHTML=icon('search',16);
+    document.getElementById('ic-res-upload').innerHTML=icon('pdf');
+  }
+  function bind(){
+    document.querySelectorAll('.nav-item').forEach(function(b){
+      b.addEventListener('click',function(){ switchView(b.getAttribute('data-view')); });
+    });
+    document.getElementById('btn-add-task').addEventListener('click',addTask);
+    document.getElementById('task-title').addEventListener('keydown',function(e){ if(e.key==='Enter') addTask(); });
+    document.getElementById('note-search').addEventListener('input',function(){ searchKw=this.value; renderNoteList(); });
+    document.getElementById('btn-new-note').addEventListener('click',newNote);
+    document.getElementById('btn-new-project').addEventListener('click',newProject);
+    document.getElementById('btn-save').addEventListener('click',saveAndExport);
+    document.getElementById('btn-new').addEventListener('click',newNote);
+    var formArea=document.getElementById('form-area');
+    formArea.addEventListener('click',function(e){
+      var actEl=e.target.closest('[data-act]'); if(!actEl) return;
+      var act=actEl.getAttribute('data-act');
+      var fid=actEl.getAttribute('data-fid');
+      if(act==='add-field'){ addFieldInline(); return; }
+      if(act==='reset-tpl'){ resetTemplateInline(); return; }
+      if(act==='edit-field'){ editingFieldId=(editingFieldId===fid)?null:fid; renderForm(); return; }
+      if(act==='fe-up'){ moveField(fid,-1); return; }
+      if(act==='fe-down'){ moveField(fid,1); return; }
+      if(act==='fe-del'){ deleteField(fid); return; }
+      if(act==='fe-done'){ editingFieldId=null; renderForm(); return; }
+      if(act==='rich-upload'){ var ri=document.querySelector('.rich-input[data-fid="'+fid+'"]'); if(ri) ri.click(); return; }
+      if(act==='rich-del'){
+        var idx=parseInt(actEl.getAttribute('data-idx'),10);
+        var arr=richImages[fid]||[]; arr.splice(idx,1); richImages[fid]=arr;
+        renderRichImages(fid); syncRich(fid); return;
+      }
+      if(act==='entry-add'){ entriesData[fid]=entriesData[fid]||[]; entriesData[fid].push({text:'',images:[]}); saveDraft(); renderForm(); return; }
+      if(act==='entry-del'){
+        var ei=parseInt(actEl.getAttribute('data-idx'),10);
+        if(entriesData[fid]) entriesData[fid].splice(ei,1);
+        saveDraft(); renderForm(); return;
+      }
+      if(act==='entry-upload'){ pendingEntryUpload={fid:fid, idx:parseInt(actEl.getAttribute('data-idx'),10)}; var efi=document.getElementById('entry-file-input'); if(efi) efi.click(); return; }
+      if(act==='entry-img-del'){
+        var e2=parseInt(actEl.getAttribute('data-idx'),10);
+        var im2=parseInt(actEl.getAttribute('data-img-idx'),10);
+        var ent=(entriesData[fid]||[])[e2];
+        if(ent&&ent.images){ ent.images.splice(im2,1); saveDraft(); renderEntryImagesBox(fid, e2); }
+        return;
+      }
+    });
+    formArea.addEventListener('input',function(e){
+      unsavedChanges=true;
+      var t=e.target;
+      if(t.hasAttribute('data-entry-text')){
+        var efid=t.getAttribute('data-fid');
+        var eidx=parseInt(t.getAttribute('data-idx'),10);
+        var elist=entriesData[efid]||[]; if(elist[eidx]) elist[eidx].text=t.value;
+        scheduleRenderMarkdown(); return;
+      }
+      if(t.classList.contains('fe-name')){
+        var fid=t.getAttribute('data-fid');
+        var ti=currentTplIndex(); if(ti<0) return;
+        var i=fieldIndex(templates[ti],fid); if(i<0) return;
+        var val=t.value;
+        templates[ti].fields[i].label=val;
+        var fieldDiv=t.closest('.field');
+        if(fieldDiv){ var lt=fieldDiv.querySelector('.lbl-text'); if(lt) lt.textContent=val; var inp=fieldDiv.querySelector('input[id],textarea[id]'); if(inp) inp.placeholder=val; }
+        setLS(LS_TEMPLATES,templates); scheduleRenderMarkdown();
+      }
+    });
+    formArea.addEventListener('change',function(e){
+      var t=e.target;
+      if(t.classList.contains('rich-input') || t.classList.contains('fe-type')) unsavedChanges=true;
+      if(t.classList.contains('rich-input')){
+        var rfid=t.getAttribute('data-fid');
+        if(t.files&&t.files.length) handleRichUpload(rfid,t.files);
+        t.value=''; return;
+      }
+      if(t.classList.contains('fe-type')){
+        var fid=t.getAttribute('data-fid');
+        var ti=currentTplIndex(); if(ti<0) return;
+        var i=fieldIndex(templates[ti],fid); if(i<0) return;
+        templates[ti].fields[i].type=t.value;
+        setLS(LS_TEMPLATES,templates); renderForm(); renderMarkdown();
+      }
+    });
+    // 粘贴图片：在图文条目/图文字段的输入框里 Ctrl+V，自动把剪贴板图片加进去
+    formArea.addEventListener('paste',function(e){
+      var t=e.target;
+      var items=(e.clipboardData&&e.clipboardData.items)||[];
+      var imgItem=null;
+      for(var i=0;i<items.length;i++){ if(items[i].type && items[i].type.indexOf('image/')===0){ imgItem=items[i]; break; } }
+      if(!imgItem) return;  // 剪贴板没有图片，走默认粘贴
+      var file=imgItem.getAsFile();
+      if(!file) return;
+      if(t.hasAttribute('data-entry-text')){
+        // 多条目图文字段（做法/现象/背景/关键结果）的某一条
+        e.preventDefault();
+        var fid=t.getAttribute('data-fid');
+        var idx=parseInt(t.getAttribute('data-idx'),10);
+        var ent=(entriesData[fid]||[])[idx];
+        if(!ent) return;
+        var arr=ent.images||[];
+        if(arr.length>=9){ toast('每条最多 9 张图片'); return; }
+        compressImage(file).then(function(url){
+          ent.images=arr.concat([url]);
+          unsavedChanges=true;
+          saveDraft(); renderEntryImagesBox(fid, idx);
+          toast('已粘贴图片');
+        }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
+      }
+      else if(t.classList && t.classList.contains('rich-text')){
+        // 单图文字段（图文类型）
+        e.preventDefault();
+        var fid2=t.id;
+        var arr2=richImages[fid2]||[];
+        if(arr2.length>=9){ toast('最多 9 张图片'); return; }
+        compressImage(file).then(function(url){
+          richImages[fid2]=arr2.concat([url]);
+          unsavedChanges=true;
+          renderRichImages(fid2); syncRich(fid2);
+          toast('已粘贴图片');
+        }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
+      }
+    });
+    // 项目进度：表单事件委托 + 图片上传
+    var projectForm=document.getElementById('project-form');
+    projectForm.addEventListener('click',handleProjectClick);
+    projectForm.addEventListener('input',handleProjectInput);
+    projectForm.addEventListener('paste',handleProjectPaste);
+    var pfi=document.createElement('input'); pfi.type='file'; pfi.accept='image/*'; pfi.multiple=true;
+    pfi.id='project-file-input'; pfi.style.display='none';
+    document.body.appendChild(pfi);
+    pfi.addEventListener('change',handleProjectFileChange);
+    var ppi=document.createElement('input'); ppi.type='file'; ppi.accept='.pdf,application/pdf';
+    ppi.id='project-pdf-input'; ppi.style.display='none';
+    document.body.appendChild(ppi);
+    ppi.addEventListener('change',handleProjectPdfChange);
+    // 多条目图文字段：共享一个隐藏图片上传 input
+    var efi2=document.createElement('input'); efi2.type='file'; efi2.accept='image/*'; efi2.multiple=true;
+    efi2.id='entry-file-input'; efi2.style.display='none';
+    document.body.appendChild(efi2);
+    efi2.addEventListener('change',handleEntryFileChange);
+
+    // 预览模式切换
+    document.getElementById('preview-seg').querySelectorAll('.seg-btn').forEach(function(b){
+      b.addEventListener('click',function(){
+        previewMode=b.getAttribute('data-mode');
+        document.getElementById('preview-seg').querySelectorAll('.seg-btn').forEach(function(x){ x.classList.toggle('active',x===b); });
+        renderPreview();
+      });
+    });
+    // 更多菜单
+    var moreBtn=document.getElementById('btn-more'), menu=document.getElementById('more-menu');
+    moreBtn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var open=menu.classList.toggle('open');
+      moreBtn.setAttribute('aria-expanded',open?'true':'false');
+    });
+    document.addEventListener('click',function(e){ if(!menu.contains(e.target) && e.target!==moreBtn){ menu.classList.remove('open'); moreBtn.setAttribute('aria-expanded','false'); } });
+    document.getElementById('m-export').addEventListener('click',function(){ menu.classList.remove('open'); exportJSON(); });
+    document.getElementById('m-import').addEventListener('click',function(){ menu.classList.remove('open'); fi.click(); });
+    document.getElementById('m-clear').addEventListener('click',function(){ menu.classList.remove('open'); clearAll(); });
+    // 主题切换
+    document.querySelectorAll('.theme-dot').forEach(function(d){
+      d.addEventListener('click',function(){ applyTheme(d.getAttribute('data-theme-set')); });
+    });
+    // 数据保存位置
+    document.getElementById('m-storage').addEventListener('click',function(){ menu.classList.remove('open'); document.getElementById('storage-mask').classList.add('open'); });
+    document.getElementById('m-setdir').addEventListener('click',pickSaveDir);
+    document.getElementById('btn-storage-close').addEventListener('click',function(){ document.getElementById('storage-mask').classList.remove('open'); });
+    document.getElementById('storage-mask').addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); });
+    // 组内共享库设置（飞书多维表格）
+    document.getElementById('m-bitable').addEventListener('click',function(){ menu.classList.remove('open'); openBitableSettings(); });
+    document.getElementById('btn-bitable-save').addEventListener('click',function(){
+      var cfg={
+        app_id: document.getElementById('bt-appid').value.trim(),
+        app_token: document.getElementById('bt-apptoken').value.trim(),
+        table_id: document.getElementById('bt-tableid').value.trim(),
+        ann_table_id: document.getElementById('bt-ann-tableid').value.trim(),
+        ann_app_token: document.getElementById('bt-ann-apptoken').value.trim(),
+        author: document.getElementById('bt-author').value.trim(),
+        student_id: document.getElementById('bt-sid').value.trim()
+      };
+      if(!cfg.app_id||!cfg.app_token||!cfg.table_id){ toast('请填全 App ID / app_token / table_id'); return; }
+      setLS(LS_BITABLE,cfg);
+      updateBitableStatus(); toast('已保存共享库配置'); closeBitableSettings();
+    });
+    document.getElementById('btn-bitable-clear').addEventListener('click',function(){
+      try{ localStorage.removeItem(LS_BITABLE); localStorage.removeItem(LS_STUDENT_FIELD_OK); }catch(e){}
+      ['bt-appid','bt-apptoken','bt-tableid','bt-ann-apptoken','bt-ann-tableid','bt-author','bt-sid'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+      updateBitableStatus(); toast('已恢复为内置共享库配置');
+    });
+    document.getElementById('btn-bitable-close').addEventListener('click',closeBitableSettings);
+    document.getElementById('bitable-mask').addEventListener('click',function(e){ if(e.target===this) closeBitableSettings(); });
+    document.getElementById('btn-shared-refresh').addEventListener('click',renderShared);
+    document.getElementById('shared-search').addEventListener('input',filterShared);
+    document.getElementById('cards-search').addEventListener('input',function(){ cardsSearchKw=this.value; renderCards(); });
+    // 类型切换 tab：全部 / 经验 / 踩坑（同时作用于本地卡片与组内共享）
+    document.querySelectorAll('#card-type-tabs .ctt-btn').forEach(function(b){
+      b.addEventListener('click',function(){
+        cardTypeFilter=b.getAttribute('data-card-type');
+        document.querySelectorAll('#card-type-tabs .ctt-btn').forEach(function(x){ x.classList.toggle('active',x===b); });
+        renderCards();
+        if(sharedLoaded) renderSharedCards(sharedItemsCache);
+      });
+    });
+    document.getElementById('shared-grid').addEventListener('click',function(e){
+      var del=e.target.closest('[data-shared-del]');
+      if(del){
+        var rid=del.getAttribute('data-shared-del');
+        showConfirm('确定从共享库删除这条卡片吗？此操作不可恢复。', function(){ deleteFromShared(rid); });
+        return;
+      }
+      var view=e.target.closest('[data-shared-view]');
+      if(view){ openSharedCardDetail(view.getAttribute('data-shared-view')); }
+    });
+    // 卡片详情弹窗
+    document.getElementById('btn-card-detail-close').addEventListener('click',closeCardDetail);
+    document.getElementById('btn-confirm-ok').addEventListener('click',function(){ var cb=confirmCallback; closeConfirm(); if(cb) cb(); });
+    document.getElementById('btn-confirm-cancel').addEventListener('click',closeConfirm);
+    document.getElementById('confirm-mask').addEventListener('click',function(e){ if(e.target===this) closeConfirm(); });
+    document.getElementById('card-detail-mask').addEventListener('click',function(e){ if(e.target===this) closeCardDetail(); });
+    // 组内公告
+    document.getElementById('btn-announce').addEventListener('click',openAnnounce);
+    document.getElementById('btn-announce-more').addEventListener('click',openAnnounce);
+    document.getElementById('btn-announce-close').addEventListener('click',closeAnnounce);
+    document.getElementById('announce-mask').addEventListener('click',function(e){ if(e.target===this) closeAnnounce(); });
+    // 资料共享（PDF）
+    document.getElementById('btn-res-pick').addEventListener('click',function(){ var f=document.getElementById('res-file-input'); if(f) f.click(); });
+    document.getElementById('res-file-input').addEventListener('change',function(e){
+      var f=e.target;
+      var file=f.files&&f.files[0];
+      f.value='';   // 立即清空，允许重复选同一文件
+      if(!file) return;
+      if(file.size>20*1024*1024){ toast('文件超过 20MB，暂不支持'); return; }
+      resFile=file;
+      var nm=document.getElementById('res-file-name');
+      nm.textContent=file.name+'（'+(file.size/1024/1024).toFixed(1)+' MB）';
+      nm.classList.add('has');
+      if(!document.getElementById('res-title').value.trim()) document.getElementById('res-title').value=file.name.replace(/\.[^.]+$/,'');
+    });
+    document.getElementById('btn-res-upload').addEventListener('click',uploadPdf);
+    document.getElementById('btn-res-refresh').addEventListener('click',renderResources);
+    document.getElementById('res-search').addEventListener('input',filterResources);
+    document.getElementById('res-grid').addEventListener('click',function(e){
+      var del=e.target.closest('[data-res-del]');
+      if(del){
+        var rid=del.getAttribute('data-res-del');
+        showConfirm('确定删除这条资料吗？此操作不可恢复。', function(){ deleteResource(rid); });
+        return;
+      }
+      var dl=e.target.closest('[data-res-dl]');
+      if(dl){
+        downloadResource(dl.getAttribute('data-res-url'), dl.getAttribute('data-res-name'));
+      }
+    });
+    // 导入文件选择
+    var fi=document.createElement('input'); fi.type='file'; fi.accept='.json,application/json'; fi.style.display='none';
+    document.body.appendChild(fi);
+    fi.addEventListener('change',function(){ if(fi.files&&fi.files[0]) importJSON(fi.files[0]); fi.value=''; });
+    // 旧「模板设置」弹窗已移除，模板编辑全部内联（newTemplateInline / deleteTemplate / addFieldInline）
+    document.addEventListener('input',function(e){
+      if(e.target&&e.target.id&&document.getElementById('form-area').contains(e.target)) scheduleRenderMarkdown();
+    });
+  }
+
+  // 启动时预热飞书 token（后台静默，减少首次打开共享页的等待）
+  function warmupFeishu(){
+    if(!bitableConfigured()) return;
+    var c=bitableConfig();
+    fetch(API_BASE + '/feishu/warmup', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({}) })
+      .catch(function(){ /* 预热失败静默，不影响使用 */ });
+  }
+
+  function init(){
+    loadAll();
+    setLS(LS_TASKS,tasks);
+    initIcons();
+    bind();
+    applyTheme(getLS('kb_theme_v1','blue'));
+    initSaveDir();
+    renderAll();
+    renderAnnounce();
+    warmupFeishu();
+    // 退出前提示：有未保存的修改时，关窗口弹确认（配合主进程 will-prevent-unload）
+    window.addEventListener('beforeunload', function(e){
+      if(unsavedChanges){
+        e.preventDefault();
+        e.returnValue = '有未保存的修改';
+        return '有未保存的修改';
+      }
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

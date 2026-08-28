@@ -1,0 +1,36 @@
+{
+  "name": "kb-workspace",
+  "version": "1.0.0",
+  "description": "组内知识库工作台",
+  "main": "main.js",
+  "author": "Group",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.group.kbworkspace",
+    "productName": "KB-Workspace",
+    "files": [
+      "main.js",
+      "server.js",
+      "index.html",
+      "preload.js",
+      "icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "icon.ico",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "KB-Workspace.exe"
+    }
+  }
+}

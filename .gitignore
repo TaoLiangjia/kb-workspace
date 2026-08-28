@@ -1,0 +1,29 @@
+# ---- 依赖与构建产物 ----
+node_modules/
+dist/
+KB-Workspace/
+KB-Workspace-*.exe
+KB-Workspace-*.zip
+
+# ---- 私有/本地数据（含飞书真实凭证，切勿提交）----
+.workbuddy/
+feishu.config.json
+
+# ---- 调试与临时文件 ----
+_inspect_media.js
+*.log
+KB-Launcher.bat
+生成桌面快捷方式.bat
+
+# ---- 部署遗留（纯本地版本不再使用）----
+web/
+generated-icons/
+
+# ---- 大体积/含水印的素材，自行准备 ----
+icon.png
+icon.ico
+kb_detail_dialog.png
+
+# ---- 系统文件 ----
+.DS_Store
+Thumbs.db
