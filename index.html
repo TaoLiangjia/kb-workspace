@@ -72,6 +72,10 @@ button{font-family:inherit}
 .btn:active{transform:translateY(1px)}
 .btn-primary{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:var(--btn-shadow)}
 .btn-primary:hover{background:var(--primary-dark);border-color:var(--primary-dark);color:#fff}
+.btn:disabled,.btn[disabled]{opacity:.45;cursor:not-allowed;filter:grayscale(.85);box-shadow:none}
+.btn-primary:disabled,.btn-primary[disabled]{background:var(--muted);border-color:var(--muted);color:#fff}
+.btn:disabled:hover,.btn[disabled]:hover{filter:grayscale(.85);box-shadow:none}
+.btn-primary:disabled:hover,.btn-primary[disabled]:hover{background:var(--muted);border-color:var(--muted)}
 .btn-ghost{background:#fff}
 .btn-ghost:hover{border-color:var(--primary);color:var(--primary)}
 .form-foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
@@ -222,7 +226,7 @@ button{font-family:inherit}
   text-align:center;font-size:13.5px;font-weight:600;transition:.18s;color:var(--text-2);box-shadow:var(--shadow-sm)}
 .tab:hover{border-color:var(--primary);color:var(--primary)}
 .tab.active{background:var(--primary);color:#fff;border-color:var(--primary);box-shadow:var(--btn-shadow)}
-.field{margin-bottom:15px}
+.field{margin-bottom:15px;position:relative}
 .field label{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:var(--text-2)}
 .field .req{color:var(--danger)}
 .field input,.field textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);
@@ -243,7 +247,8 @@ button{font-family:inherit}
 .field-label:hover{color:var(--primary)}
 .field-label:hover .lbl-edit-ic{opacity:1;color:var(--primary)}
 .lbl-edit-ic{opacity:0;color:var(--muted);display:inline-flex;transition:.12s}
-.field-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:9px;padding:11px 13px;background:var(--surface-2);border:1px dashed var(--line);border-radius:var(--radius-sm)}
+.field-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:11px 13px;background:var(--surface-2);border:1px dashed var(--line);border-radius:var(--radius-sm);
+  position:absolute;right:10px;top:0;z-index:30;width:300px;box-shadow:var(--shadow-md)}
 .field-edit .fe-name{flex:1;min-width:120px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
 .field-edit .fe-type{padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
 .field-edit .fe-unit{flex:1;min-width:90px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
@@ -282,7 +287,7 @@ button{font-family:inherit}
 .project-main{flex:1;min-width:0}
 .p-empty{padding:40px 20px;border:1.5px dashed var(--line-strong);border-radius:var(--radius);text-align:center;color:var(--muted)}
 .p-empty .em{font-size:30px;display:block;margin-bottom:8px}
-.p-section{margin-bottom:22px}
+.p-section{margin-bottom:22px;position:relative}
 .p-section-title{font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:11px;display:flex;align-items:center;gap:8px}
 .p-section-title .cnt{font-size:11px;color:var(--muted);font-weight:600}
 .p-tpl-label{cursor:pointer;transition:color .12s;user-select:none}
@@ -290,7 +295,7 @@ button{font-family:inherit}
 .p-tpl-label .lbl-edit-ic{opacity:0;color:var(--muted);display:inline-flex;transition:.12s}
 .p-tpl-label:hover .lbl-edit-ic{opacity:1;color:var(--primary)}
 .p-add-type{padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:13px;background:#fff;color:var(--text)}
-.p-field{margin-bottom:15px}
+.p-field{margin-bottom:15px;position:relative}
 .p-field label{display:block;font-size:13px;font-weight:600;margin-bottom:7px;color:var(--text-2)}
 .p-field input,.p-field textarea{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);
   font-size:15px;font-family:inherit;background:#fff;transition:.15s;color:var(--text)}
@@ -1601,7 +1606,19 @@ button{font-family:inherit}
   var richImages={};  // 图文字段：{ [fieldId]: [base64, ...] }，当前编辑态下各图文字段的图片
   var entriesData={};  // 多条目图文字段：{ [fieldId]: [ {text, images:[...]}, ... ] }，当前编辑态
   var pendingEntryUpload=null;  // { fid, idx }，待写入图片的条目
-  var unsavedChanges=false;    // 是否有未保存的表单修改（用于退出前提示）
+  var unsavedChanges = false;    // 是否有未保存的表单修改（用于退出前提示 + 保存按钮状态）
+  // 统一改写入口：改状态的同时刷新「保存」按钮的可用/置灰
+  function setUnsaved(v){
+    unsavedChanges=!!v;
+    updateSaveButtons();
+  }
+  // 保存按钮状态：无改动→置灰禁用；有改动→可用高亮
+  function updateSaveButtons(){
+    var nb=document.getElementById('btn-save');   // 知识笔记保存按钮
+    if(nb){ if(unsavedChanges){ nb.disabled=false; nb.removeAttribute('disabled'); nb.title='保存当前笔记'; } else { nb.disabled=true; nb.setAttribute('disabled','disabled'); nb.title='当前没有需要保存的改动'; } }
+    var pb=document.querySelector('#project-form [data-act="p-save"]');  // 项目进度保存按钮
+    if(pb){ if(unsavedChanges){ pb.disabled=false; pb.removeAttribute('disabled'); pb.title='保存当前项目'; } else { pb.disabled=true; pb.setAttribute('disabled','disabled'); pb.title='当前没有需要保存的改动'; } }
+  }
   var saveDirPath='', dirName='';  // 保存文件夹路径（字符串，存 localStorage）
 
   // ---- 项目进度状态 ----
@@ -1948,7 +1965,7 @@ button{font-family:inherit}
   function switchTemplate(id){
     saveDraft(); currentTplId=id; currentNoteId=null;
     editingFieldId=null;
-    unsavedChanges=false;
+    setUnsaved(false);
     loadRichFromNote();
     renderTplTabs(); renderForm(); renderMarkdown(); renderNoteList();
   }
@@ -2061,7 +2078,7 @@ button{font-family:inherit}
     if(idx>=0) notes[idx]=note; else notes.push(note);
     setLS(LS_NOTES,notes);
     currentNoteId=note.id;
-    unsavedChanges=false;
+    setUnsaved(false);
     renderNoteList(); renderCards();
     autoBackup();
     return note;
@@ -2119,7 +2136,7 @@ button{font-family:inherit}
     if(!n) return;
     currentNoteId=n.id; currentTplId=n.templateId; drafts[n.templateId]=n.fields;
     editingFieldId=null;
-    unsavedChanges=false;
+    setUnsaved(false);
     loadRichFromNote();
     renderTplTabs(); renderForm(); renderMarkdown(); renderNoteList();
     toast('已打开：'+n.title);
@@ -2129,7 +2146,7 @@ button{font-family:inherit}
       var n=null; for(var i=0;i<notes.length;i++) if(notes[i].id===id) n=notes[i];
       notes=notes.filter(function(n){ return n.id!==id; });
       setLS(LS_NOTES,notes);
-      if(currentNoteId===id){ currentNoteId=null; clearForm(); renderMarkdown(); }
+      if(currentNoteId===id){ currentNoteId=null; clearForm(); renderMarkdown(); setUnsaved(false); }
       renderNoteList(); renderCards(); toast('已删除');
       autoBackup();
       // 同步删除本地 Obsidian 文件夹里的 .md（若设过保存文件夹）
@@ -2141,7 +2158,7 @@ button{font-family:inherit}
     currentNoteId=null;
     editingFieldId=null;
     delete drafts[currentTplId];
-    unsavedChanges=false;
+    setUnsaved(false);
     loadRichFromNote();
     renderTplTabs(); renderForm(); clearForm(); renderMarkdown(); renderNoteList();
     toast('已新建，开始填写吧');
@@ -2695,7 +2712,7 @@ button{font-family:inherit}
     if(!curProject){ box.innerHTML='<div class="p-empty"><span class="em">📁</span>选择左侧项目，或点 + 新建一个项目开始记录进度</div>'; return; }
     var p=curProject;
     var html='<div class="p-form-head"><h3>'+icon('projects',18)+' 项目进度</h3>'
-      +'<button class="btn btn-primary" data-act="p-save">保存</button></div>';
+      +'<button class="btn btn-primary" data-act="p-save"'+(unsavedChanges?'':( ' disabled="disabled"'))+' title="'+(unsavedChanges?'保存当前项目':'当前没有需要保存的改动')+'">保存</button></div>';
     projectTemplate.forEach(function(f){
       var editing=editingTplId===f.id;
       var head=pTplHead(f,editing);
@@ -2817,13 +2834,13 @@ button{font-family:inherit}
     }
     var cf=t.getAttribute('data-cf');
     if(cf){
-      unsavedChanges=true;
+      setUnsaved(true);
       if(!curProject.custom) curProject.custom={};
       curProject.custom[cf]=t.value;
       return;
     }
     var pf=t.getAttribute('data-pf'); if(!pf) return;
-    unsavedChanges=true;
+    setUnsaved(true);
     var idx=t.getAttribute('data-idx');
     if(pf==='direction'){ curProject.direction=t.value; }
     else if(pf==='links'){ curProject.links=t.value; }
@@ -2836,7 +2853,7 @@ button{font-family:inherit}
     var act=actEl.getAttribute('data-act');
     if(act==='p-save'){ saveProject(); return; }
     if(!curProject) return;
-    unsavedChanges=true;
+    setUnsaved(true);
     var idx=parseInt(actEl.getAttribute('data-idx'),10);
     if(act==='p-add-field'){ var sel=document.getElementById('p-add-field-type'); addProjectField(sel?sel.value:'text'); return; }
     if(act==='p-reset-fields'){ resetProjectFields(); return; }
@@ -2910,7 +2927,7 @@ button{font-family:inherit}
     if(arr.length>=9){ toast('最多 9 张图片'); return; }
     compressImage(file).then(function(url){
       entry.images=arr.concat([url]);
-      unsavedChanges=true;
+      setUnsaved(true);
       renderProjectForm();
       toast('已粘贴图片');
     }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
@@ -2927,7 +2944,7 @@ button{font-family:inherit}
     reader.onload=function(){
       curProject.pdfs=curProject.pdfs||[];
       curProject.pdfs.push({ name:file.name, dataUrl:reader.result });
-      unsavedChanges=true;
+      setUnsaved(true);
       renderProjectForm();
       toast('已添加 PDF：'+file.name);
     };
@@ -3009,6 +3026,7 @@ button{font-family:inherit}
     if(idx>=0) projects[idx]=curProject; else projects.push(curProject);
     setLS(LS_PROJECTS,projects);
     autoBackup();
+    setUnsaved(false);   // 已写入本地存储，保存按钮回到置灰
   }
   function saveProject(){
     if(!curProject) return;
@@ -3018,7 +3036,7 @@ button{font-family:inherit}
     var oldName=curProject.localFileName||'';
     var dispPath=subdir+'/'+newName;
     persistProject();
-    unsavedChanges=false;
+    setUnsaved(false);
     renderProjectList();
     var md=projectToMarkdown(curProject);
     if(!saveDirPath){ toast('已保存'); return; }
@@ -3151,7 +3169,7 @@ button{font-family:inherit}
       }
     });
     formArea.addEventListener('input',function(e){
-      unsavedChanges=true;
+      setUnsaved(true);
       var t=e.target;
       if(t.hasAttribute('data-entry-text')){
         var efid=t.getAttribute('data-fid');
@@ -3172,7 +3190,7 @@ button{font-family:inherit}
     });
     formArea.addEventListener('change',function(e){
       var t=e.target;
-      if(t.classList.contains('rich-input') || t.classList.contains('fe-type')) unsavedChanges=true;
+      if(t.classList.contains('rich-input') || t.classList.contains('fe-type')) setUnsaved(true);
       if(t.classList.contains('rich-input')){
         var rfid=t.getAttribute('data-fid');
         if(t.files&&t.files.length) handleRichUpload(rfid,t.files);
@@ -3215,7 +3233,7 @@ button{font-family:inherit}
         if(arr.length>=9){ toast('每条最多 9 张图片'); return; }
         compressImage(file).then(function(url){
           ent.images=arr.concat([url]);
-          unsavedChanges=true;
+          setUnsaved(true);
           saveDraft(); renderEntryImagesBox(fid, idx);
           toast('已粘贴图片');
         }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
@@ -3228,7 +3246,7 @@ button{font-family:inherit}
         if(arr2.length>=9){ toast('最多 9 张图片'); return; }
         compressImage(file).then(function(url){
           richImages[fid2]=arr2.concat([url]);
-          unsavedChanges=true;
+          setUnsaved(true);
           renderRichImages(fid2); syncRich(fid2);
           toast('已粘贴图片');
         }).catch(function(err){ toast('图片处理失败：'+((err&&err.message)||'未知错误')); });
@@ -3393,6 +3411,7 @@ button{font-family:inherit}
     initSaveDir();
     renderAll();
     renderAnnounce();
+    updateSaveButtons();
     warmupFeishu();
     // 退出前提示：有未保存的修改时，关窗口弹确认（配合主进程 will-prevent-unload）
     window.addEventListener('beforeunload', function(e){
