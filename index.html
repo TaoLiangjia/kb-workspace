@@ -246,6 +246,7 @@ button{font-family:inherit}
 .field-edit{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:9px;padding:11px 13px;background:var(--surface-2);border:1px dashed var(--line);border-radius:var(--radius-sm)}
 .field-edit .fe-name{flex:1;min-width:120px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
 .field-edit .fe-type{padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
+.field-edit .fe-unit{flex:1;min-width:90px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;background:#fff}
 .field-edit .btn{flex:0 0 auto}
 .form-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;flex-wrap:wrap}
 .form-head h3{margin:0;display:flex;align-items:center;gap:8px;font-size:16px}
@@ -805,7 +806,7 @@ button{font-family:inherit}
       while(i<lines.length && !/^\s*$/.test(lines[i]) && !/^(#{1,3})\s+/.test(lines[i]) && !/^\s*[-*]\s+/.test(lines[i]) && !/^>\s?/.test(lines[i]) && !/^---+$/.test(lines[i].trim())){
         para.push(lines[i]); i++;
       }
-      out.push('<p>'+inline(para.join(' '))+'</p>');
+      out.push('<p>'+para.map(function(l){ return inline(l); }).join('<br>')+'</p>');
     }
     return out.join('');
   }
@@ -1882,6 +1883,8 @@ button{font-family:inherit}
           html+='<div class="p-entry" data-entry-idx="'+i+'">'
             +'<div class="p-entry-head">'
             +'<span class="p-entry-type" style="background:var(--primary-soft);color:var(--primary)">'+itemLabel+'</span>'
+            +'<button class="icon-btn-sm" data-act="entry-up" data-fid="'+f.id+'" data-idx="'+i+'" title="上移">↑</button>'
+            +'<button class="icon-btn-sm" data-act="entry-down" data-fid="'+f.id+'" data-idx="'+i+'" title="下移">↓</button>'
             +'<span class="spacer"></span>'
             +'<button class="btn btn-sm btn-ghost" data-act="entry-upload" data-fid="'+f.id+'" data-idx="'+i+'">'+icon('upload',15)+' 上传图片</button>'
             +'<button class="p-del-btn" data-act="entry-del" data-fid="'+f.id+'" data-idx="'+i+'" title="删除'+unit+'">×</button>'
@@ -1900,6 +1903,7 @@ button{font-family:inherit}
         html+='<select class="fe-type" data-fid="'+f.id+'">';
         TYPE_OPTIONS.forEach(function(t){ html+='<option value="'+t.value+'"'+(f.type===t.value?' selected':'')+'>'+t.label+'</option>'; });
         html+='</select>';
+        if(f.type==='entries'){ html+='<input class="fe-unit" data-fid="'+f.id+'" value="'+escapeHtml(f.unit||'条目')+'" placeholder="条目单位，如：步骤" title="条目单位，如：步骤 / 要点 / 阶段">'; }
         html+='<button class="icon-btn-sm" data-act="fe-up" data-fid="'+f.id+'" title="上移">↑</button>';
         html+='<button class="icon-btn-sm" data-act="fe-down" data-fid="'+f.id+'" title="下移">↓</button>';
         html+='<button class="icon-btn-sm danger" data-act="fe-del" data-fid="'+f.id+'" title="删除字段">×</button>';
@@ -2715,6 +2719,8 @@ button{font-family:inherit}
             +'<div class="ref-item-head">'
             +'<input data-pf="ref" data-idx="'+i+'" data-sub="title" placeholder="文献标题" value="'+escapeHtml(r.title||'')+'">'
             +'<input class="ref-year" data-pf="ref" data-idx="'+i+'" data-sub="year" placeholder="年份" value="'+escapeHtml(r.year||'')+'">'
+            +'<button class="icon-btn-sm" data-act="p-up-ref" data-idx="'+i+'" title="上移">↑</button>'
+            +'<button class="icon-btn-sm" data-act="p-down-ref" data-idx="'+i+'" title="下移">↓</button>'
             +'<button class="p-del-btn" data-act="p-del-ref" data-idx="'+i+'" title="删除文献">×</button>'
             +'</div>'
             +'<textarea data-pf="ref" data-idx="'+i+'" data-sub="note" placeholder="可借鉴的信息 / 关键结论">'+escapeHtml(r.note||'')+'</textarea>'
@@ -2729,6 +2735,8 @@ button{font-family:inherit}
           html+='<div class="p-entry" data-prog-idx="'+i+'">'
             +'<div class="p-entry-head">'
             +'<button class="p-type-toggle" data-act="p-toggle-prog" data-idx="'+i+'">'+(isProg?'▶ 进展':'▷ 计划')+'</button>'
+            +'<button class="icon-btn-sm" data-act="p-up-prog" data-idx="'+i+'" title="上移">↑</button>'
+            +'<button class="icon-btn-sm" data-act="p-down-prog" data-idx="'+i+'" title="下移">↓</button>'
             +'<span class="spacer"></span>'
             +'<button class="btn btn-sm btn-ghost" data-act="p-upload" data-pf="prog" data-idx="'+i+'">'+icon('upload',15)+' 上传图片</button>'
             +'<button class="p-del-btn" data-act="p-del-prog" data-idx="'+i+'" title="删除">×</button>'
@@ -2745,6 +2753,8 @@ button{font-family:inherit}
           html+='<div class="p-entry" data-disc-idx="'+i+'">'
             +'<div class="p-entry-head">'
             +'<span class="p-entry-type" style="background:var(--primary-soft);color:var(--primary)">讨论</span>'
+            +'<button class="icon-btn-sm" data-act="p-up-disc" data-idx="'+i+'" title="上移">↑</button>'
+            +'<button class="icon-btn-sm" data-act="p-down-disc" data-idx="'+i+'" title="下移">↓</button>'
             +'<span class="spacer"></span>'
             +'<button class="btn btn-sm btn-ghost" data-act="p-upload" data-pf="disc" data-idx="'+i+'">'+icon('upload',15)+' 上传图片</button>'
             +'<button class="p-del-btn" data-act="p-del-disc" data-idx="'+i+'" title="删除">×</button>'
@@ -2836,11 +2846,17 @@ button{font-family:inherit}
     if(act==='p-tpl-del'){ deleteProjectField(actEl.getAttribute('data-tpl')); return; }
     if(act==='p-tpl-done'){ editingTplId=null; renderProjectForm(); return; }
     if(act==='p-add-ref'){ curProject.refs=curProject.refs||[]; curProject.refs.push({title:'',year:'',note:''}); renderProjectForm(); return; }
+    if(act==='p-up-ref'){ var ra=curProject.refs||[]; var rj=idx-1; if(rj>=0){ var rt=ra[idx]; ra[idx]=ra[rj]; ra[rj]=rt; renderProjectForm(); } return; }
+    if(act==='p-down-ref'){ var rb=curProject.refs||[]; var rk=idx+1; if(rk<rb.length){ var rt2=rb[idx]; rb[idx]=rb[rk]; rb[rk]=rt2; renderProjectForm(); } return; }
     if(act==='p-del-ref'){ if(curProject.refs) curProject.refs.splice(idx,1); renderProjectForm(); return; }
     if(act==='p-add-progress'){ curProject.progress=curProject.progress||[]; curProject.progress.push({type:'prog',text:'',images:[]}); renderProjectForm(); return; }
+    if(act==='p-up-prog'){ var pa=curProject.progress||[]; var pj=idx-1; if(pj>=0){ var pt=pa[idx]; pa[idx]=pa[pj]; pa[pj]=pt; renderProjectForm(); } return; }
+    if(act==='p-down-prog'){ var pb=curProject.progress||[]; var pk=idx+1; if(pk<pb.length){ var pt2=pb[idx]; pb[idx]=pb[pk]; pb[pk]=pt2; renderProjectForm(); } return; }
     if(act==='p-del-prog'){ if(curProject.progress) curProject.progress.splice(idx,1); renderProjectForm(); return; }
     if(act==='p-toggle-prog'){ var it=curProject.progress&&curProject.progress[idx]; if(it){ it.type=(it.type==='plan')?'prog':'plan'; renderProjectForm(); } return; }
     if(act==='p-add-disc'){ curProject.discussions=curProject.discussions||[]; curProject.discussions.push({text:'',images:[]}); renderProjectForm(); return; }
+    if(act==='p-up-disc'){ var da=curProject.discussions||[]; var dj=idx-1; if(dj>=0){ var dt=da[idx]; da[idx]=da[dj]; da[dj]=dt; renderProjectForm(); } return; }
+    if(act==='p-down-disc'){ var db=curProject.discussions||[]; var dk=idx+1; if(dk<db.length){ var dt2=db[idx]; db[idx]=db[dk]; db[dk]=dt2; renderProjectForm(); } return; }
     if(act==='p-del-disc'){ if(curProject.discussions) curProject.discussions.splice(idx,1); renderProjectForm(); return; }
     if(act==='p-upload'){
       pendingUpload={ pf:actEl.getAttribute('data-pf'), idx:idx };
@@ -3112,6 +3128,14 @@ button{font-family:inherit}
         renderRichImages(fid); syncRich(fid); return;
       }
       if(act==='entry-add'){ entriesData[fid]=entriesData[fid]||[]; entriesData[fid].push({text:'',images:[]}); saveDraft(); renderForm(); return; }
+      if(act==='entry-up'||act==='entry-down'){
+        var ei=parseInt(actEl.getAttribute('data-idx'),10);
+        var arr=entriesData[fid]||[];
+        var ej=ei+(act==='entry-up'?-1:1);
+        if(ej<0||ej>=arr.length) return;
+        var et=arr[ei]; arr[ei]=arr[ej]; arr[ej]=et;
+        saveDraft(); renderForm(); return;
+      }
       if(act==='entry-del'){
         var ei=parseInt(actEl.getAttribute('data-idx'),10);
         if(entriesData[fid]) entriesData[fid].splice(ei,1);
@@ -3160,6 +3184,15 @@ button{font-family:inherit}
         var i=fieldIndex(templates[ti],fid); if(i<0) return;
         templates[ti].fields[i].type=t.value;
         setLS(LS_TEMPLATES,templates); renderForm(); renderMarkdown();
+        return;
+      }
+      if(t.classList.contains('fe-unit')){
+        var fid2=t.getAttribute('data-fid');
+        var ti2=currentTplIndex(); if(ti2<0) return;
+        var i2=fieldIndex(templates[ti2],fid2); if(i2<0) return;
+        templates[ti2].fields[i2].unit=t.value.trim()||'条目';
+        setLS(LS_TEMPLATES,templates); renderForm(); renderMarkdown();
+        return;
       }
     });
     // 粘贴图片：在图文条目/图文字段的输入框里 Ctrl+V，自动把剪贴板图片加进去
