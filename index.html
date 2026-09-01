@@ -276,6 +276,22 @@ button{font-family:inherit}
 .preview-doc a{color:var(--primary);text-decoration:none;font-weight:600}
 .preview-doc a:hover{text-decoration:underline}
 .preview-doc hr{border:none;border-top:1px solid var(--line);margin:14px 0}
+.preview-doc img{cursor:zoom-in;transition:box-shadow .15s}
+.preview-doc img:hover{box-shadow:0 4px 16px rgba(0,0,0,.14)}
+/* 图片放大查看（灯箱） */
+.img-view-mask{position:fixed;inset:0;background:rgba(10,14,22,.78);display:none;align-items:center;justify-content:center;z-index:1000}
+.img-view-mask.open{display:flex}
+.img-view-box{position:relative;max-width:92vw;max-height:90vh;display:flex;align-items:center;justify-content:center}
+.img-view-box img{max-width:92vw;max-height:90vh;border-radius:10px;box-shadow:0 14px 50px rgba(0,0,0,.55);cursor:grab;transform-origin:center;user-select:none;-webkit-user-drag:none}
+.img-view-box img:active{cursor:grabbing}
+.img-view-close{position:fixed;top:18px;right:22px;width:42px;height:42px;border:none;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:24px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:.15s}
+.img-view-close:hover{background:rgba(255,255,255,.32)}
+.img-view-zoom-btn{position:fixed;bottom:64px;width:44px;height:44px;border:none;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;font-size:24px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0;transition:.15s}
+.img-view-zoom-btn:hover{background:rgba(255,255,255,.32)}
+.img-view-zoom-in{right:34px}
+.img-view-zoom-out{right:88px}
+.img-view-zoom-ind{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.85);font-size:13px;background:rgba(255,255,255,.14);padding:4px 12px;border-radius:20px;pointer-events:none}
+.img-view-tip{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.66);font-size:13px;pointer-events:none}
 .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px}
 .seg-btn{border:none;background:none;padding:6px 13px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:.14s}
 .seg-btn.active{background:#fff;color:var(--primary);box-shadow:var(--shadow-sm)}
@@ -790,7 +806,7 @@ button{font-family:inherit}
       s=s.replace(/`([^`]+)`/g,function(_,c){ return '<code>'+c+'</code>'; });
       s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
       s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,function(_,t,u){ return '<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+t+'</a>'; });
-      s=s.replace(/!\[([^\]]*)\]\(((?:data:image\/[^)\s]+|https?:\/\/[^)\s]+|\/[^)\s]+))\)/g,function(_,alt,u){ return '<img src="'+u+'" alt="'+alt+'" style="max-width:100%;border-radius:10px;margin:6px 0;display:block">'; });
+      s=s.replace(/!\[([^\]]*)\]\(((?:data:image\/[^)\s]+|https?:\/\/[^)\s]+|\/[^)\s]+))\)/g,function(_,alt,u){ return '<img data-src="'+u+'" alt="'+alt+'" style="max-width:100%;border-radius:10px;margin:6px 0;display:block">'; });
       return s;
     }
     while(i<lines.length){
@@ -883,7 +899,7 @@ button{font-family:inherit}
       else if(f.type==='entries'){ entriesData[f.id]=parseEntries(values[f.id]); }
     });
   }
-  // 图片延迟加载：把 img[data-src] 在空闲时逐个设为 src，避免大段 base64 同步解码阻塞主线程（导致界面卡死）
+  // 图片加载：把 img[data-src] 尽快设为 src；每帧最多加载 4 张，避免一次性解码大段 base64 阻塞主线程（导致界面卡死）
   function scheduleLazyImages(container){
     if(!container) return;
     var imgs=container.querySelectorAll('img[data-src]');
@@ -891,14 +907,16 @@ button{font-family:inherit}
     var idx=0;
     function next(){
       if(idx>=imgs.length) return;
-      var im=imgs[idx];
-      var s=im.getAttribute('data-src');
-      im.removeAttribute('data-src');
-      im.src=s;
-      idx++;
-      setTimeout(next, 60);
+      var end=Math.min(idx+4, imgs.length);
+      for(; idx<end; idx++){
+        var im=imgs[idx];
+        var s=im.getAttribute('data-src');
+        im.removeAttribute('data-src');
+        im.src=s;
+      }
+      if(idx<imgs.length) requestAnimationFrame(next);
     }
-    setTimeout(next, 30);
+    requestAnimationFrame(next);
   }
   // 渲染某个图文字段的图片缩略图
   function renderRichImages(fid){
@@ -1188,9 +1206,76 @@ button{font-family:inherit}
   var sharedLoaded=false;
   function openCardDetailHtml(html){
     var b=document.getElementById('card-detail-body'); if(b) b.innerHTML=html;
+    if(b) scheduleLazyImages(b);
     var m=document.getElementById('card-detail-mask'); if(m) m.classList.add('open');
   }
   function closeCardDetail(){ var m=document.getElementById('card-detail-mask'); if(m) m.classList.remove('open'); }
+  // ---- 图片点击放大查看（灯箱，本地卡片与共享卡片通用；滚轮/按钮缩放、拖拽平移、双击复位）----
+  var imgView={ scale:1, dx:0, dy:0 };
+  function imgViewReset(){ imgView.scale=1; imgView.dx=0; imgView.dy=0; }
+  function imgViewApply(){
+    var im=document.getElementById('img-view-img'); if(!im) return;
+    im.style.transform='translate('+imgView.dx+'px,'+imgView.dy+'px) scale('+imgView.scale+')';
+    var ind=document.getElementById('img-view-zoom'); if(ind) ind.textContent=Math.round(imgView.scale*100)+'%';
+  }
+  function openImageZoom(src){
+    if(!src) return;
+    var mask=document.getElementById('img-view-mask');
+    if(!mask){
+      mask=document.createElement('div');
+      mask.id='img-view-mask';
+      mask.className='img-view-mask';
+      mask.innerHTML='<div class="img-view-box"><img id="img-view-img" alt="" draggable="false"></div>'
+        +'<button class="img-view-close" type="button" title="关闭（Esc）">×</button>'
+        +'<button class="img-view-zoom-btn img-view-zoom-in" type="button" title="放大">+</button>'
+        +'<button class="img-view-zoom-btn img-view-zoom-out" type="button" title="缩小">−</button>'
+        +'<span class="img-view-zoom-ind" id="img-view-zoom">100%</span>'
+        +'<div class="img-view-tip">滚轮或 +/− 缩放 · 拖拽移动 · 双击复位 · 点击空白或 Esc 关闭</div>';
+      document.body.appendChild(mask);
+      var im=document.getElementById('img-view-img');
+      mask.addEventListener('click',function(e){ if(e.target===mask) closeImageZoom(); });
+      mask.querySelector('.img-view-close').addEventListener('click',function(e){ e.stopPropagation(); closeImageZoom(); });
+      mask.querySelector('.img-view-zoom-in').addEventListener('click',function(e){ e.stopPropagation(); imgView.scale=Math.min(8,imgView.scale*1.3); imgViewApply(); });
+      mask.querySelector('.img-view-zoom-out').addEventListener('click',function(e){ e.stopPropagation(); imgView.scale=Math.max(0.2,imgView.scale/1.3); imgViewApply(); });
+      // 滚轮以鼠标位置为中心缩放
+      mask.addEventListener('wheel',function(e){
+        e.preventDefault();
+        var rect=im.getBoundingClientRect();
+        var mx=e.clientX-rect.left-rect.width/2;
+        var my=e.clientY-rect.top-rect.height/2;
+        var old=imgView.scale;
+        imgView.scale=Math.min(8,Math.max(0.2,old*(e.deltaY<0?1.15:1/1.15)));
+        var k=imgView.scale/old-1;
+        imgView.dx-=mx*k; imgView.dy-=my*k;
+        imgViewApply();
+      },{passive:false});
+      im.addEventListener('dblclick',function(e){ e.preventDefault(); imgViewReset(); imgViewApply(); });
+      // 拖拽平移
+      var dragging=false, sx=0, sy=0;
+      im.addEventListener('mousedown',function(e){ dragging=true; sx=e.clientX; sy=e.clientY; im.style.cursor='grabbing'; e.preventDefault(); });
+      document.addEventListener('mousemove',function(e){ if(!dragging) return; imgView.dx+=e.clientX-sx; imgView.dy+=e.clientY-sy; sx=e.clientX; sy=e.clientY; imgViewApply(); });
+      document.addEventListener('mouseup',function(){ dragging=false; if(im) im.style.cursor='grab'; });
+      document.addEventListener('keydown',function(ev){ if(ev.key==='Escape') closeImageZoom(); });
+    }
+    var im=document.getElementById('img-view-img');
+    imgViewReset();
+    im.src=src; im.alt='';
+    imgViewApply();
+    mask.classList.add('open');
+  }
+  function closeImageZoom(){ var m=document.getElementById('img-view-mask'); if(m) m.classList.remove('open'); }
+  // 全局委托：点击预览/卡片详情里的图片时放大查看（图片可能尚未加载完成，src 没有时回退 data-src）
+  document.addEventListener('click',function(e){
+    var t=e.target;
+    if(!t || t.tagName!=='IMG') return;
+    var host=document.getElementById('img-view-mask');
+    if(host && host.classList.contains('open') && host.contains(t)) return;
+    if(t.closest('.rich-img')) return;   // 表单缩略图不响应（那是编辑区）
+    if(t.closest('.preview-doc')){
+      var src=t.getAttribute('src')||t.getAttribute('data-src')||'';
+      if(src) openImageZoom(src);
+    }
+  });
   function openNoteCardDetail(id){
     var n=null; for(var i=0;i<notes.length;i++) if(notes[i].id===id) n=notes[i];
     if(!n) return;
@@ -2053,9 +2138,9 @@ button{font-family:inherit}
     if(previewMode==='src'){ el.className='preview-doc preview-src'; el.textContent=currentMarkdown; }
     else {
       el.className='preview-doc';
-      // 预览区不直接渲染 base64 图片（大段 base64 会阻塞主线程导致界面卡死），用占位符代替；图片完整保留在导出的 .md 与表单缩略图里
-      var md=currentMarkdown.replace(/!\[([^\]]*)\]\(data:image\/[^)\s]+\)/g, function(_,alt){ return '🖼️ '+(alt||'图片'); });
-      el.innerHTML=mdToHtml(md);
+      // 预览区直接渲染图片，但用 data-src + 分批加载，避免一次性解码大段 base64 阻塞主线程（导致界面卡死）
+      el.innerHTML=mdToHtml(currentMarkdown);
+      scheduleLazyImages(el);
     }
   }
   function getTitleValue(){
